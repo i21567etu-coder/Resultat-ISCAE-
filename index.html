@@ -263,10 +263,10 @@
     }
 
     // ==========================================
-    // ⚠️ إعدادات GitHub
+    // ⚠️ إعدادات GitHub الجديدة
     // ==========================================
-    const GITHUB_USERNAME = "agwfmhmd-max";
-    const REPO_NAME = "Resultat-ISCAE";
+    const GITHUB_USERNAME = "i21567etu-coder";
+    const REPO_NAME = "Resultat-ISCAE-";
     // ==========================================
 
     let currentStudentId = "";
@@ -293,8 +293,7 @@
         }
     }
 
-    // 2. دالة بناء الروابط (تم التعديل لتكون دقيقة)
-    // النمط: BA_L1_S1_Resultats_Classement.pdf
+    // 2. دالة بناء الروابط (بدون فروع، الكل في main)
     function getFileUrls() {
         const major = document.getElementById('major').value; // التخصص (BA)
         const lvl = document.getElementById('level').value;   // المستوى (L1)
@@ -305,11 +304,10 @@
             return null; 
         }
         
-        // بناء اسم الملف بالشكل المطلوب بالضبط
+        // بناء اسم الملف: BA_L1_S1_...
         const filePrefix = `${major}_${lvl}_${sem}`;
         
-        // الرابط يشير دائماً إلى main
-        // تأكد من أن الفرع في جيت هاب اسمه main أو master (الأرجح main)
+        // الرابط يشير إلى الفرع الرئيسي main
         const baseUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/main`;
         
         return {
@@ -344,7 +342,7 @@
         }
     }
 
-    // 3. دالة جلب البيانات (محسنة لتفادي مشاكل القراءة)
+    // 3. دالة جلب البيانات (مع خوارزمية تجميع الأسطر)
     async function fetchRankingData(pdfUrl) {
         document.getElementById('loader').style.display = 'block';
         try {
@@ -356,14 +354,12 @@
                 const page = await pdf.getPage(i);
                 const textContent = await page.getTextContent();
                 
-                // تجميع الأسطر بشكل ذكي (تسامح في الارتفاع 5 بكسل)
                 let rows = []; 
                 textContent.items.forEach(item => {
                     const y = item.transform[5]; 
                     const str = item.str;
                     const x = item.transform[4];
                     
-                    // البحث عن سطر قريب
                     let foundRow = rows.find(r => Math.abs(r.y - y) < 5);
                     if (foundRow) {
                         foundRow.items.push({ str, x });
@@ -372,16 +368,12 @@
                     }
                 });
 
-                // ترتيب الأسطر من الأعلى للأسفل
                 rows.sort((a, b) => b.y - a.y);
 
                 rows.forEach(row => {
-                    // ترتيب الكلمات داخل السطر
                     const lineItems = row.items.sort((a, b) => a.x - b.x);
                     const lineStr = lineItems.map(t => t.str).join(" ").trim();
                     
-                    // Regex مرن يقبل الأرقام العشرية والفواصل المختلفة
-                    // المثال: 1  I21180  Mohamed...  12.50  Admis
                     const match = lineStr.match(/^(\d+)\s+(I\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(.+)$/i);
                     
                     if(match) {
@@ -403,7 +395,7 @@
             
             let msg = "عذراً، حدث خطأ أثناء تحميل الملف.";
             if (e.name === 'MissingPDFException' || e.status === 404) {
-                msg = `الملف غير موجود في قاعدة البيانات لهذا الفصل حالياً.\n(تأكد من رفعه باسم صحيح)`;
+                msg = `الملف غير موجود في المستودع الجديد.\n(المسار المطلوب: ${pdfUrl})`;
             }
             
             document.getElementById('error-msg').innerText = msg;
@@ -421,6 +413,9 @@
         resetView();
         const urls = getFileUrls();
         if(!urls) return;
+
+        // طباعة الروابط للتأكد من المسار الجديد
+        console.log("Checking URL:", urls.rankingUrl);
 
         const matricule = document.getElementById('matricule').value.trim().toUpperCase();
         if(!matricule) { 
@@ -497,7 +492,7 @@
                             nextStudents.sort((a, b) => b.transform[5] - a.transform[5]);
                             endY = nextStudents[0].transform[5]; 
                         } else {
-                            endY = 30; // نهاية الصفحة تقريباً
+                            endY = 30; 
                             if (i < pdfDocjs.numPages) {
                                 const nextPage = await pdfDocjs.getPage(i + 1);
                                 const nextContent = await nextPage.getTextContent();
