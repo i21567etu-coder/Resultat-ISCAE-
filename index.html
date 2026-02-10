@@ -102,7 +102,7 @@
 
         .clickable-id { color: var(--primary); text-decoration: underline; font-weight: bold; cursor: pointer; }
         
-        /* الاحتفال */
+        /* الاحتفال المحسّن */
         #celebration-msg {
             display: none; position: relative; text-align: center;
             background: linear-gradient(135deg, #fff0f5, #fff);
@@ -119,13 +119,14 @@
         }
 
         .floating-particle {
-            position: absolute; bottom: -20px; font-size: 1.5rem;
-            animation: floatUp linear forwards; opacity: 0; z-index: 1;
+            position: fixed; font-size: 2rem;
+            animation: floatUp linear forwards; opacity: 1; z-index: 1000;
+            pointer-events: none;
         }
 
         @keyframes floatUp {
-            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(-150px) rotate(360deg); opacity: 0; }
+            0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(360deg) scale(0.3); opacity: 0; }
         }
         @keyframes bounceIn { from { transform: scale(1); } to { transform: scale(1.1); } }
 
@@ -323,22 +324,39 @@
         document.getElementById('dl-msg').style.display = 'none';
         const celebBox = document.getElementById('celebration-msg');
         celebBox.style.display = 'none';
-        celebBox.querySelectorAll('.floating-particle').forEach(p => p.remove());
+        document.querySelectorAll('.floating-particle').forEach(p => p.remove());
     }
 
     function startCelebration() {
         const container = document.getElementById('celebration-msg');
         container.style.display = 'block';
-        const symbols = ['🌸', '❤️', '🎉', '✨', '💖'];
-        for (let i = 0; i < 20; i++) {
+        
+        // الرموز: ورود، قلوب، نجوم
+        const symbols = ['🌹', '❤️', '💖', '💝', '✨', '🌸', '💕', '🎉', '⭐', '💐'];
+        
+        // إنشاء 50 جزيء متحرك
+        for (let i = 0; i < 50; i++) {
             const span = document.createElement('span');
             span.classList.add('floating-particle');
             span.innerText = symbols[Math.floor(Math.random() * symbols.length)];
-            span.style.left = Math.random() * 90 + 5 + '%';
-            span.style.animationDuration = (Math.random() * 2 + 2) + 's';
-            span.style.animationDelay = Math.random() * 1.5 + 's';
-            span.style.fontSize = (Math.random() * 1.5 + 1) + 'rem';
-            container.appendChild(span);
+            
+            // موقع عشوائي في الشاشة
+            span.style.left = Math.random() * 100 + '%';
+            span.style.top = Math.random() * 50 + 50 + '%';
+            
+            // مدة الحركة عشوائية
+            span.style.animationDuration = (Math.random() * 3 + 3) + 's';
+            span.style.animationDelay = Math.random() * 2 + 's';
+            
+            // حجم عشوائي
+            span.style.fontSize = (Math.random() * 2 + 1.5) + 'rem';
+            
+            document.body.appendChild(span);
+            
+            // حذف العنصر بعد انتهاء الحركة
+            setTimeout(() => {
+                span.remove();
+            }, (Math.random() * 3 + 3 + Math.random() * 2 + 2) * 1000);
         }
     }
 
@@ -393,12 +411,7 @@
             console.error("File loading error:", e);
             document.getElementById('loader').style.display = 'none';
             
-            let msg = "عذراً، حدث خطأ أثناء تحميل الملف.";
-            if (e.name === 'MissingPDFException' || e.status === 404) {
-                msg = `الملف غير موجود في المستودع الجديد.\n(المسار المطلوب: ${pdfUrl})`;
-            }
-            
-            document.getElementById('error-msg').innerText = msg;
+            document.getElementById('error-msg').innerText = "لم يتم رفع النتائج بعد";
             document.getElementById('error-msg').style.display = 'block';
             return null;
         }
@@ -414,7 +427,6 @@
         const urls = getFileUrls();
         if(!urls) return;
 
-        // طباعة الروابط للتأكد من المسار الجديد
         console.log("Checking URL:", urls.rankingUrl);
 
         const matricule = document.getElementById('matricule').value.trim().toUpperCase();
