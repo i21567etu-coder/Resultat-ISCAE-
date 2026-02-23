@@ -257,7 +257,6 @@
                 <button type="button" class="btn-top20" onclick="showTop20()">🏆 العشرون الأوائل</button>
             </div>
         </form>
-        <!-- النص هنا عام ولا يذكر المصادر -->
         <div id="loader" class="loader">⏳ جاري البحث عن النتائج...</div>
         <div id="error-msg" class="error"></div>
     </div>
@@ -268,7 +267,7 @@
             <h2 id="res-name">اسم الطالب</h2>
             <div class="info-row"><span>رقم التسجيل:</span> <span id="res-id" class="info-val"></span></div>
             <div class="info-row"><span>المعدل العام:</span> <span id="res-avg" class="info-val" style="color:var(--primary); font-size:1.3rem;"></span></div>
-            <!-- خانة الرصيد الجديدة -->
+            <!-- خانة الرصيد -->
             <div class="info-row" id="res-credit-row" style="display:none;"><span>الرصيد (Crédits):</span> <span id="res-credit" class="info-val" style="color:var(--primary); font-weight:bold;"></span></div>
             <div class="info-row"><span>الترتيب:</span> <span id="res-rank" class="info-val" style="color:var(--secondary);"></span></div>
             <div class="info-row"><span>القرار:</span> <span id="res-dec" class="info-val"></span></div>
@@ -461,6 +460,7 @@
         }
 
         try {
+            // محاولة جلب البيانات من Supabase
             const { data, error } = await _supabase
                 .from('results_metadata')
                 .select('*')
@@ -470,16 +470,21 @@
                 .order('created_at', { ascending: false })
                 .limit(1);
 
+            if (error) throw error;
+
             if (data && data.length > 0) {
+                console.log("تم إيجاد الملفات في Supabase:", data[0]);
                 return {
                     rankingUrl: data[0].ranking_url,
                     resultsUrl: data[0].details_url
                 };
             }
         } catch (err) {
-            console.log("Supabase check failed, falling back...");
+            console.error("خطأ في جلب البيانات من Supabase:", err);
         }
 
+        // في حال عدم وجودها في Supabase، نعود لروابط GitHub القديمة
+        console.log("البيانات غير موجودة في Supabase، جاري البحث في GitHub...");
         const filePrefix = `${major}_${lvl}_${sem}`;
         const baseUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/main`;
         
@@ -525,25 +530,25 @@
                     const lineItems = row.items.sort((a, b) => a.x - b.x);
                     const lineStr = lineItems.map(t => t.str).join(" ").trim();
                     
-                    // محاولة مطابقة النمط الذي يحتوي على الرصيد (Credits)
-                    // النمط: Rank - ID - Name - Average - Credits - Decision
-                    let match = lineStr.match(/^(\d+)\s+(I\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(\d{1,2})\s+(.+)$/i);
+                    // نمط محسّن جداً: يقبل المسافات بعد حرف I (مثل I 21180) ويقبل أي نصوص إضافية
+                    let match = lineStr.match(/^(\d+)\s+(I\s*\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(\d{1,2})\s+(.+)$/i);
                     let hasCredit = true;
                     
-                    // إذا لم يطابق، نحاول النمط القديم (بدون رصيد)
                     if (!match) {
-                        match = lineStr.match(/^(\d+)\s+(I\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(.+)$/i);
+                        // نمط بدون الرصيد
+                        match = lineStr.match(/^(\d+)\s+(I\s*\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(.+)$/i);
                         hasCredit = false;
                     }
                     
                     if(match) {
+                        // تنظيف رقم التسجيل من أي مسافات زائدة (تحويل I 21180 إلى I21180)
+                        let cleanMatricule = match[2].replace(/\s+/g, '').toUpperCase();
+                        
                         students.push({
                             rank: parseInt(match[1]),
-                            id: match[2].toUpperCase(),
+                            id: cleanMatricule,
                             name: match[3].trim(),
                             avg: match[4].replace(',', '.'),
-                            // إذا كان النمط الأول (hasCredit) فالرصيد في المجموعة 5 والقرار في 6
-                            // إذا كان النمط الثاني، فالقرار في 5 والرصيد غير موجود
                             credit: hasCredit ? match[5] : null, 
                             decision: hasCredit ? match[6].trim() : match[5].trim()
                         });
@@ -552,7 +557,7 @@
             }
             return students;
         } catch (e) {
-            console.error("PDF Parse Error:", e);
+            console.error("خطأ في قراءة ملف PDF:", e);
             return null;
         }
     }
@@ -580,13 +585,15 @@
         const students = await fetchRankingData(urls.rankingUrl);
         document.getElementById('loader').style.display = 'none';
 
-        if(!students) {
-            document.getElementById('error-msg').innerText = "لم يتم العثور على ملف النتائج (تأكد من اختيار التخصص الصحيح).";
+        if(!students || students.length === 0) {
+            document.getElementById('error-msg').innerText = "لم يتم العثور على ملف النتائج أو هناك مشكلة في قراءة الملف.";
             document.getElementById('error-msg').style.display = 'block';
             return;
         }
 
-        const student = students.find(s => s.id === matricule);
+        // إزالة الفراغات من الماتريكول المدخل للبحث بشكل دقيق
+        const cleanInputMatricule = matricule.replace(/\s+/g, '');
+        const student = students.find(s => s.id === cleanInputMatricule);
 
         if(student) {
             document.getElementById('res-name').innerText = student.name;
@@ -636,7 +643,7 @@
         const students = await fetchRankingData(urls.rankingUrl);
         document.getElementById('loader').style.display = 'none';
         
-        if(!students) {
+        if(!students || students.length === 0) {
             document.getElementById('error-msg').innerText = "لم يتم العثور على ملف النتائج.";
             document.getElementById('error-msg').style.display = 'block';
             return;
@@ -718,10 +725,12 @@
                 const page = await pdfDocjs.getPage(i);
                 const content = await page.getTextContent();
                 for (let item of content.items) {
-                    if (item.str.includes(currentStudentId)) {
+                    // إزالة المسافات للتأكد من المطابقة
+                    const itemStrClean = item.str.replace(/\s+/g, '');
+                    if (itemStrClean.includes(currentStudentId)) {
                         startPage = i - 1;
                         startY = item.transform[5];
-                        let nextStudents = content.items.filter(itm => itm.str.match(/I\d{4,}/) && itm.transform[5] < startY);
+                        let nextStudents = content.items.filter(itm => itm.str.replace(/\s+/g, '').match(/I\d{4,}/) && itm.transform[5] < startY);
                         if (nextStudents.length > 0) {
                             nextStudents.sort((a, b) => b.transform[5] - a.transform[5]);
                             endY = nextStudents[0].transform[5]; 
@@ -730,7 +739,7 @@
                             if (i < pdfDocjs.numPages) {
                                 const nextPage = await pdfDocjs.getPage(i + 1);
                                 const nextContent = await nextPage.getTextContent();
-                                let page2Students = nextContent.items.filter(itm => itm.str.match(/I\d{4,}/));
+                                let page2Students = nextContent.items.filter(itm => itm.str.replace(/\s+/g, '').match(/I\d{4,}/));
                                 if (page2Students.length > 0) {
                                     spansToNextPage = true;
                                     page2Students.sort((a, b) => b.transform[5] - a.transform[5]);
@@ -797,5 +806,41 @@
 </script>
 <!-- END PROTECTION CODE -->
 
+
+    <!-- START PROTECTION CODE -->
+    <script>
+    (function() {
+        // منع الزر الأيمن
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+
+        // منع اختصارات لوحة المفاتيح
+        document.onkeydown = function(e) {
+            // F12
+            if(e.keyCode == 123) {
+                return false;
+            }
+            // Ctrl+I (DevTools)
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
+                return false;
+            }
+            // Ctrl+J (Console)
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
+                return false;
+            }
+            // Ctrl+C (Inspect)
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) {
+                return false;
+            }
+            // Ctrl+U (View Source)
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
+                return false;
+            }
+        }
+    })();
+    </script>
+    <!-- END PROTECTION CODE -->
+    
 </body>
 </html>
