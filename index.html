@@ -49,6 +49,7 @@
         .search-box { 
             background: white; padding: 25px; border-radius: var(--radius); 
             box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 30px;
+            text-align: center;
         }
 
         .form-group { margin-bottom: 15px; text-align: right; }
@@ -67,18 +68,40 @@
             font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s;
         }
         
-        .btn-search { background: var(--primary); color: white; }
+        .btn-search { background: var(--primary); color: white; font-size: 1.1rem; }
         .btn-top20 { background: var(--secondary); color: #004d22; }
         button:hover { transform: translateY(-2px); opacity: 0.95; }
+
+        /* Results Container */
+        #results-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
 
         .result-card { 
             background: white; border-radius: var(--radius); padding: 25px; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.08); display: none; 
-            animation: slideUp 0.5s ease; margin-bottom: 30px;
+            animation: slideUp 0.5s ease;
             border-top: 6px solid var(--primary); text-align: right;
+            position: relative;
         }
 
-        .student-info h2 { color: var(--primary); margin: 0 0 20px 0; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .semester-badge {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: #f0fdf4;
+            color: var(--primary);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border: 1px solid #bbf7d0;
+            direction: ltr;
+        }
+
+        .student-info h2 { color: var(--primary); margin: 0 0 20px 0; border-bottom: 1px solid #eee; padding-bottom: 10px; padding-left: 100px; }
         .info-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.1rem; }
         .info-val { font-weight: bold; color: #000; }
 
@@ -99,12 +122,12 @@
         td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
         tr:nth-child(even) { background: #fafafa; }
         
-        .loader { display: none; text-align: center; padding: 20px; font-weight: bold; color: var(--primary); }
+        .loader { display: none; text-align: center; padding: 20px; font-weight: bold; color: var(--primary); font-size: 1.1rem;}
         .error { color: #dc2626; text-align: center; display: none; margin-top: 10px; padding: 15px; background: #fee2e2; border-radius: 8px; border: 1px solid #fecaca; }
 
         .clickable-id { color: var(--primary); text-decoration: underline; font-weight: bold; cursor: pointer; }
         
-        /* Modal Style for Admin */
+        /* Modal Style */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); z-index: 2000; display: none;
@@ -115,11 +138,14 @@
             width: 90%; max-width: 500px; text-align: right;
             border: 2px solid var(--secondary);
             box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         .modal-box h2 { color: var(--primary); margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .admin-btn { background: #0f172a; color: #fbbf24; margin-top: 10px; width: 100%; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .close-modal { 
-            float: left; cursor: pointer; font-size: 1.5rem; color: #aaa; 
+            position: absolute; top: 20px; left: 20px; cursor: pointer; font-size: 1.5rem; color: #aaa; 
         }
         .file-input-wrapper { margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px dashed #cbd5e1; }
         
@@ -127,7 +153,7 @@
         #celebration-msg {
             display: none; position: relative; text-align: center;
             background: linear-gradient(135deg, #fff0f5, #fff);
-            padding: 25px; border-radius: 15px; margin-top: 20px;
+            padding: 25px; border-radius: 15px; margin-bottom: 20px;
             border: 2px solid #bbf7d0; overflow: hidden; 
             box-shadow: 0 5px 15px rgba(22, 163, 74, 0.2);
         }
@@ -162,7 +188,6 @@
     <div class="modal-box">
         <span class="close-modal" onclick="closeAdmin()">✖</span>
         
-        <!-- Step 1: Login -->
         <div id="admin-login-step">
             <h2>🔐 دخول الإدارة</h2>
             <div class="form-group">
@@ -173,9 +198,15 @@
             <p id="login-error" style="color:red; display:none; margin-top:10px;">الرمز غير صحيح!</p>
         </div>
 
-        <!-- Step 2: Upload -->
         <div id="admin-upload-step" style="display:none;">
             <h2>📤 رفع النتائج</h2>
+            
+            <div class="form-group">
+                <label>السنة الجامعية:</label>
+                <!-- سيتم ملؤها تلقائياً بالكود -->
+                <select id="up-year"></select>
+            </div>
+
             <div class="form-group">
                 <label>التخصص:</label>
                 <select id="up-major">
@@ -196,10 +227,8 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>الفصل / النوع:</label>
-                <select id="up-semester">
-                    <!-- Populated by JS -->
-                </select>
+                <label>الفصل:</label>
+                <select id="up-semester"></select>
             </div>
             
             <div class="file-input-wrapper">
@@ -213,78 +242,82 @@
             </div>
 
             <button class="admin-btn" style="margin-top:20px; background:var(--primary); color:white;" onclick="uploadFiles()">رفع البيانات</button>
-            <div id="upload-status" style="margin-top:15px; font-weight:bold; font-size:0.9rem;"></div>
+            <div id="upload-status" style="margin-top:15px; font-weight:bold; font-size:0.9rem; text-align:center;"></div>
         </div>
+    </div>
+</div>
+
+<!-- Top 20 Filter Modal -->
+<div id="top20-modal" class="modal-overlay">
+    <div class="modal-box">
+        <span class="close-modal" onclick="closeTop20Modal()">✖</span>
+        <h2>🏆 تصفية العشرون الأوائل</h2>
+
+        <div class="form-group">
+            <label>السنة الجامعية:</label>
+            <!-- سيتم ملؤها تلقائياً بالكود -->
+            <select id="t20-year"></select>
+        </div>
+
+        <div class="form-group">
+            <label>التخصص (Filière)</label>
+            <select id="t20-major">
+                <option value="BA">Banque Assurance (BA)</option>
+                <option value="FC">Finance Comptabilité (FC)</option>
+                <option value="GRH">Gestion des RH (GRH)</option>
+                <option value="IG">Informatique de Gestion (IG)</option>
+                <option value="TCM">Techniques Commerciales (TCM)</option>
+                <option value="SAE">SAE</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>المستوى (Niveau)</label>
+            <select id="t20-level" onchange="updateT20Semesters()">
+                <option value="L1">Licence 1 (L1)</option>
+                <option value="L2">Licence 2 (L2)</option>
+                <option value="L3">Licence 3 (L3)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>الفصل (Semestre)</label>
+            <select id="t20-semester"></select>
+        </div>
+        <button class="admin-btn" style="background:var(--secondary); color:#004d22; font-size:1.1rem; padding:12px;" onclick="fetchAndShowTop20()">عرض القائمة</button>
     </div>
 </div>
 
 <div class="container">
     <div class="search-box">
+        <h3 style="color:var(--primary); margin-top:0;">استعلام سريع عن النتائج</h3>
+        <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">أدخل رقم التسجيل الخاص بك للبحث في جميع الفصول والتخصصات المتاحة.</p>
+        
         <form id="searchForm">
             <div class="form-group">
-                <label>التخصص (Filière)</label>
-                <select id="major" required>
-                    <option value="">-- اختر التخصص --</option>
-                    <option value="BA">Banque Assurance (BA)</option>
-                    <option value="FC">Finance Comptabilité (FC)</option>
-                    <option value="GRH">Gestion des RH (GRH)</option>
-                    <option value="IG">Informatique de Gestion (IG)</option>
-                    <option value="TCM">Techniques Commerciales (TCM)</option>
-                    <option value="SAE">SAE</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>المستوى (Niveau)</label>
-                <select id="level" onchange="updateSemesters()" required>
-                    <option value="">-- اختر المستوى --</option>
-                    <option value="L1">Licence 1 (L1)</option>
-                    <option value="L2">Licence 2 (L2)</option>
-                    <option value="L3">Licence 3 (L3)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>الفصل (Semestre)</label>
-                <select id="semester" required>
-                    <option value="">-- اختر المستوى أولاً --</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>رقم التسجيل (Matricule)</label>
-                <input type="text" id="matricule" placeholder="مثال: I21567" style="text-transform: uppercase; text-align: left; direction: ltr;">
+                <input type="text" id="matricule" placeholder="رقم التسجيل (مثال: I21567)" style="text-transform: uppercase; text-align: center; direction: ltr; font-size:1.2rem; padding:15px; font-weight:bold;">
             </div>
             <div class="btn-group">
-                <button type="button" class="btn-search" onclick="searchStudent()">🔍 عرض النتيجة</button>
-                <button type="button" class="btn-top20" onclick="showTop20()">🏆 العشرون الأوائل</button>
+                <button type="button" class="btn-search" onclick="searchAllSemesters()">🔍 إبحث عن نتائجي</button>
+            </div>
+            <div class="btn-group" style="margin-top: 10px;">
+                <button type="button" class="btn-top20" onclick="openTop20Modal()">🏆 عرض العشرون الأوائل</button>
             </div>
         </form>
-        <div id="loader" class="loader">⏳ جاري البحث عن النتائج...</div>
+        <div id="loader" class="loader">⏳ جاري البحث...</div>
         <div id="error-msg" class="error"></div>
     </div>
 
-    <!-- بطاقة النتيجة -->
-    <div id="student-result" class="result-card">
-        <div class="student-info">
-            <h2 id="res-name">اسم الطالب</h2>
-            <div class="info-row"><span>رقم التسجيل:</span> <span id="res-id" class="info-val"></span></div>
-            <div class="info-row"><span>المعدل العام:</span> <span id="res-avg" class="info-val" style="color:var(--primary); font-size:1.3rem;"></span></div>
-            <!-- خانة الرصيد -->
-            <div class="info-row" id="res-credit-row" style="display:none;"><span>الرصيد (Crédits):</span> <span id="res-credit" class="info-val" style="color:var(--primary); font-weight:bold;"></span></div>
-            <div class="info-row"><span>الترتيب:</span> <span id="res-rank" class="info-val" style="color:var(--secondary);"></span></div>
-            <div class="info-row"><span>القرار:</span> <span id="res-dec" class="info-val"></span></div>
-        </div>
-
-        <div id="celebration-msg">
-            <span class="congrats-text">🎉 ألف مبروك النجاح 🎉</span>
-        </div>
-        
-        <button id="download-btn" class="download-btn" onclick="downloadPrecisePDF()">
-            📥 تنزيل كشف النقاط (نسخة الطالب فقط)
-        </button>
-        <div id="dl-msg" style="text-align:center; font-size:0.8rem; color:#666; margin-top:5px; display:none;">جاري المعالجة والقص الدقيق...</div>
+    <!-- رسالة الاحتفال -->
+    <div id="celebration-msg">
+        <span class="congrats-text">🎉 ألف مبروك النجاح 🎉</span>
     </div>
 
+    <!-- حاوية عرض النتائج (الفصول المتعددة) -->
+    <div id="results-container"></div>
+
+    <!-- حاوية العشرون الأوائل -->
     <div id="top20-container" class="result-card">
         <h2 style="color:var(--primary); text-align:center;">🏆 قائمة العشرون الأوائل</h2>
+        <p id="top20-info" style="text-align:center; color:#666; direction:ltr; font-weight:bold;"></p>
         <div style="overflow-x:auto;">
             <table>
                 <thead>
@@ -303,66 +336,73 @@
 
 <script>
     // ==========================================
-    // ⚠️ إعدادات Supabase & GitHub
+    // ⚠️ إعدادات Supabase
     // ==========================================
     const SUPABASE_URL = 'https://chjxwcliodlevzorjush.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNoanh3Y2xpb2RsZXZ6b3JqdXNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3MjUzNDIsImV4cCI6MjA3OTMwMTM0Mn0.PVvBRAMsscwbnDQt5Qg6Ni9z39WeI981aBCkMnZOnJQ';
     
-    // إعدادات GitHub (للملفات القديمة)
-    const GITHUB_USERNAME = "i21567etu-coder";
-    const REPO_NAME = "Resultat-ISCAE-";
-
     // تهيئة Supabase
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    // ==========================================
-
-    let currentStudentId = "";
-    let currentResultsPdfUrl = "";
-    const ADMIN_PASS = "I21567@MDA"; // 🔒 الرمز السري للإدارة
+    const ADMIN_PASS = "I21567@MDA"; 
     
-    // Service Worker
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed', err));
         });
     }
 
-    // 1. إدارة الفصول وتحديثها (تم إزالة Résultat Annuel)
     const semsData = {
         'L1': { 'S1': 'Semestre 1', 'S2': 'Semestre 2' },
         'L2': { 'S3': 'Semestre 3', 'S4': 'Semestre 4' },
         'L3': { 'S5': 'Semestre 5', 'S6': 'Semestre 6' }
     };
 
-    function updateSemesters() {
-        populateSemesters('level', 'semester');
+    // توليد السنوات الأكاديمية ديناميكياً (الحالية والماضية فقط)
+    function populateAcademicYears() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth(); // 0 = يناير, 8 = سبتمبر
+        // إذا كنا في سبتمبر أو بعده، السنة الجامعية تبدأ من السنة الحالية. عدا ذلك تبدأ من السنة الماضية.
+        const startYear = month >= 8 ? year : year - 1; 
+        
+        const currentAcYear = `${startYear}-${startYear + 1}`;
+        const prevAcYear = `${startYear - 1}-${startYear}`;
+        
+        const upYearSelect = document.getElementById('up-year');
+        const t20YearSelect = document.getElementById('t20-year');
+        
+        const optionsHTML = `<option value="${currentAcYear}">${currentAcYear}</option><option value="${prevAcYear}">${prevAcYear}</option>`;
+        
+        upYearSelect.innerHTML = optionsHTML;
+        t20YearSelect.innerHTML = optionsHTML;
     }
-    
-    function updateUploadSemesters() {
-        populateSemesters('up-level', 'up-semester');
-    }
+
+    function updateUploadSemesters() { populateSemesters('up-level', 'up-semester'); }
+    function updateT20Semesters() { populateSemesters('t20-level', 't20-semester'); }
 
     function populateSemesters(levelId, semId) {
         const lvl = document.getElementById(levelId).value;
         const semSelect = document.getElementById(semId);
-        semSelect.innerHTML = '<option value="">-- اختر الفصل / النوع --</option>';
+        semSelect.innerHTML = '';
         if(lvl && semsData[lvl]) {
             for(let key in semsData[lvl]) {
                 let opt = document.createElement('option');
-                opt.value = key; 
-                opt.text = semsData[lvl][key];
+                opt.value = key; opt.text = semsData[lvl][key];
                 semSelect.appendChild(opt);
             }
         }
     }
+    
+    // Initialize default dropdowns
+    populateAcademicYears();
+    updateUploadSemesters();
+    updateT20Semesters();
 
     // ==========================================
     // 🎓 ADMIN LOGIC (5 Taps)
     // ==========================================
     let tapCount = 0;
-    const header = document.getElementById('main-header');
-    
-    header.addEventListener('click', (e) => {
+    document.getElementById('main-header').addEventListener('click', () => {
         tapCount++;
         if (tapCount === 5) {
             document.getElementById('admin-modal').style.display = 'flex';
@@ -376,14 +416,15 @@
         document.getElementById('admin-login-step').style.display = 'block';
         document.getElementById('admin-upload-step').style.display = 'none';
         document.getElementById('admin-pass').value = '';
+        document.getElementById('file-details').value = '';
+        document.getElementById('file-ranking').value = '';
+        document.getElementById('upload-status').innerHTML = '';
     }
 
     function checkAdminPass() {
-        const input = document.getElementById('admin-pass').value;
-        if (input === ADMIN_PASS) {
+        if (document.getElementById('admin-pass').value === ADMIN_PASS) {
             document.getElementById('admin-login-step').style.display = 'none';
             document.getElementById('admin-upload-step').style.display = 'block';
-            updateUploadSemesters();
         } else {
             const err = document.getElementById('login-error');
             err.style.display = 'block';
@@ -391,116 +432,61 @@
         }
     }
 
-    // دالة الرفع
     async function uploadFiles() {
         const statusDiv = document.getElementById('upload-status');
+        const academicYear = document.getElementById('up-year').value;
         const major = document.getElementById('up-major').value;
         const level = document.getElementById('up-level').value;
         const semester = document.getElementById('up-semester').value;
-        
         const fileDetails = document.getElementById('file-details').files[0];
         const fileRanking = document.getElementById('file-ranking').files[0];
 
         if (!major || !level || !semester || !fileDetails || !fileRanking) {
-            statusDiv.innerHTML = '<span style="color:red">يرجى ملء جميع الحقول واختيار الملفين.</span>';
-            return;
+            statusDiv.innerHTML = '<span style="color:red">يرجى ملء جميع الحقول واختيار الملفين.</span>'; return;
         }
 
         statusDiv.innerHTML = '<span style="color:#005C29">⏳ جاري الرفع... يرجى الانتظار.</span>';
 
         try {
-            const uploadToSupabase = async (file, prefix) => {
+            const upload = async (file, prefix) => {
                 const fileName = `${prefix}_${major}_${level}_${semester}_${Date.now()}.pdf`;
-                const { data, error } = await _supabase.storage
-                    .from('isc_results')
-                    .upload(fileName, file);
-                
+                const { error } = await _supabase.storage.from('isc_results').upload(fileName, file);
                 if (error) throw error;
-                const { data: urlData } = _supabase.storage
-                    .from('isc_results')
-                    .getPublicUrl(fileName);
-                return urlData.publicUrl;
+                const { data } = _supabase.storage.from('isc_results').getPublicUrl(fileName);
+                return data.publicUrl;
             };
 
-            const detailsUrl = await uploadToSupabase(fileDetails, 'DETAILS');
-            const rankingUrl = await uploadToSupabase(fileRanking, 'RANKING');
+            const detailsUrl = await upload(fileDetails, 'DETAILS');
+            const rankingUrl = await upload(fileRanking, 'RANKING');
 
-            const { error: dbError } = await _supabase
-                .from('results_metadata')
-                .insert([
-                    { major: major, level: level, semester: semester, details_url: detailsUrl, ranking_url: rankingUrl }
-                ]);
+            const { error: dbError } = await _supabase.from('results_metadata')
+                .insert([{ academic_year: academicYear, major, level, semester, details_url: detailsUrl, ranking_url: rankingUrl }]);
 
             if (dbError) throw dbError;
-
-            statusDiv.innerHTML = '<span style="color:green">✅ تم الرفع بنجاح! النتائج متاحة الآن.</span>';
-            setTimeout(() => {
-                closeAdmin();
-                statusDiv.innerHTML = '';
-            }, 3000);
+            
+            // نجاح الرفع، تفريغ الخانات للسماح برفع ملفات جديدة مع إبقاء النافذة مفتوحة
+            statusDiv.innerHTML = '<span style="color:green">✅ تم الرفع بنجاح! يمكنك رفع ملفات أخرى الآن.</span>';
+            document.getElementById('file-details').value = '';
+            document.getElementById('file-ranking').value = '';
+            
+            setTimeout(() => { 
+                statusDiv.innerHTML = ''; 
+            }, 5000); // الرسالة تختفي بعد 5 ثواني ولكن اللوحة تبقى مفتوحة
 
         } catch (err) {
-            console.error(err);
-            statusDiv.innerHTML = '<span style="color:red">❌ حدث خطأ: ' + (err.message || JSON.stringify(err)) + '</span>';
+            statusDiv.innerHTML = '<span style="color:red">❌ خطأ: ' + err.message + '</span>';
         }
     }
 
     // ==========================================
-    // 🔍 STUDENT SEARCH LOGIC
+    // 🔍 STUDENT SEARCH LOGIC (Matricule Only)
     // ==========================================
-
-    async function fetchLatestFiles() {
-        const major = document.getElementById('major').value;
-        const lvl = document.getElementById('level').value;
-        const sem = document.getElementById('semester').value;
-        
-        if(!major || !lvl || !sem) { 
-            alert("الرجاء اختيار التخصص، المستوى والفصل."); 
-            return null; 
-        }
-
-        try {
-            // محاولة جلب البيانات من Supabase
-            const { data, error } = await _supabase
-                .from('results_metadata')
-                .select('*')
-                .eq('major', major)
-                .eq('level', lvl)
-                .eq('semester', sem)
-                .order('created_at', { ascending: false })
-                .limit(1);
-
-            if (error) throw error;
-
-            if (data && data.length > 0) {
-                console.log("تم إيجاد الملفات في Supabase:", data[0]);
-                return {
-                    rankingUrl: data[0].ranking_url,
-                    resultsUrl: data[0].details_url
-                };
-            }
-        } catch (err) {
-            console.error("خطأ في جلب البيانات من Supabase:", err);
-        }
-
-        // في حال عدم وجودها في Supabase، نعود لروابط GitHub القديمة
-        console.log("البيانات غير موجودة في Supabase، جاري البحث في GitHub...");
-        const filePrefix = `${major}_${lvl}_${sem}`;
-        const baseUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/main`;
-        
-        return {
-            rankingUrl: `${baseUrl}/${filePrefix}_Resultats_Classement.pdf`,
-            resultsUrl: `${baseUrl}/${filePrefix}_Resultats.pdf`
-        };
-    }
 
     function resetView() {
-        document.getElementById('student-result').style.display = 'none';
+        document.getElementById('results-container').innerHTML = '';
         document.getElementById('top20-container').style.display = 'none';
         document.getElementById('error-msg').style.display = 'none';
-        document.getElementById('dl-msg').style.display = 'none';
-        const celebBox = document.getElementById('celebration-msg');
-        celebBox.style.display = 'none';
+        document.getElementById('celebration-msg').style.display = 'none';
         document.querySelectorAll('.floating-particle').forEach(p => p.remove());
     }
 
@@ -508,20 +494,20 @@
         try {
             const loadingTask = pdfjsLib.getDocument(pdfUrl);
             const pdf = await loadingTask.promise;
-            let students = [];
+            let students =[];
 
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const textContent = await page.getTextContent();
                 
-                let rows = []; 
+                let rows =[]; 
                 textContent.items.forEach(item => {
                     const y = item.transform[5]; 
                     const str = item.str;
                     const x = item.transform[4];
                     let foundRow = rows.find(r => Math.abs(r.y - y) < 5);
                     if (foundRow) foundRow.items.push({ str, x });
-                    else rows.push({ y, items: [{ str, x }] });
+                    else rows.push({ y, items:[{ str, x }] });
                 });
 
                 rows.sort((a, b) => b.y - a.y);
@@ -530,20 +516,16 @@
                     const lineItems = row.items.sort((a, b) => a.x - b.x);
                     const lineStr = lineItems.map(t => t.str).join(" ").trim();
                     
-                    // نمط محسّن جداً: يقبل المسافات بعد حرف I (مثل I 21180) ويقبل أي نصوص إضافية
                     let match = lineStr.match(/^(\d+)\s+(I\s*\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(\d{1,2})\s+(.+)$/i);
                     let hasCredit = true;
                     
                     if (!match) {
-                        // نمط بدون الرصيد
                         match = lineStr.match(/^(\d+)\s+(I\s*\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(.+)$/i);
                         hasCredit = false;
                     }
                     
                     if(match) {
-                        // تنظيف رقم التسجيل من أي مسافات زائدة (تحويل I 21180 إلى I21180)
                         let cleanMatricule = match[2].replace(/\s+/g, '').toUpperCase();
-                        
                         students.push({
                             rank: parseInt(match[1]),
                             id: cleanMatricule,
@@ -556,110 +538,186 @@
                 });
             }
             return students;
-        } catch (e) {
-            console.error("خطأ في قراءة ملف PDF:", e);
-            return null;
-        }
+        } catch (e) { return null; }
     }
 
-    async function searchStudent() {
-        resetView();
-        document.getElementById('loader').style.display = 'block';
-
+    async function searchAllSemesters() {
         const matricule = document.getElementById('matricule').value.trim().toUpperCase();
         if(!matricule) { 
-            document.getElementById('loader').style.display = 'none';
-            document.getElementById('error-msg').innerText = "الرجاء إدخال رقم التسجيل.";
-            document.getElementById('error-msg').style.display = 'block';
-            return; 
+            showError("الرجاء إدخال رقم التسجيل للبحث."); return; 
         }
 
-        const urls = await fetchLatestFiles();
-        
-        if(!urls) {
-            document.getElementById('loader').style.display = 'none';
-            document.getElementById('error-msg').innerText = "حدث خطأ غير متوقع.";
-            return;
-        }
+        resetView();
+        const loader = document.getElementById('loader');
+        loader.style.display = 'block';
+        loader.innerText = '⏳ جاري جلب السجلات من قاعدة البيانات...';
 
-        const students = await fetchRankingData(urls.rankingUrl);
-        document.getElementById('loader').style.display = 'none';
-
-        if(!students || students.length === 0) {
-            document.getElementById('error-msg').innerText = "لم يتم العثور على ملف النتائج أو هناك مشكلة في قراءة الملف.";
-            document.getElementById('error-msg').style.display = 'block';
-            return;
-        }
-
-        // إزالة الفراغات من الماتريكول المدخل للبحث بشكل دقيق
-        const cleanInputMatricule = matricule.replace(/\s+/g, '');
-        const student = students.find(s => s.id === cleanInputMatricule);
-
-        if(student) {
-            document.getElementById('res-name').innerText = student.name;
-            document.getElementById('res-id').innerText = student.id;
-            document.getElementById('res-avg').innerText = student.avg;
-            document.getElementById('res-rank').innerText = student.rank;
+        try {
+            const { data: files, error } = await _supabase.from('results_metadata').select('*').order('created_at', { ascending: false });
             
-            // عرض أو إخفاء خانة الرصيد
-            const creditRow = document.getElementById('res-credit-row');
-            if (student.credit) {
-                document.getElementById('res-credit').innerText = student.credit;
-                creditRow.style.display = 'flex';
-            } else {
-                creditRow.style.display = 'none';
+            if (error) throw error;
+            if (!files || files.length === 0) {
+                loader.style.display = 'none';
+                showError("لا توجد أي نتائج مرفوعة في النظام حالياً.");
+                return;
             }
 
-            const decEl = document.getElementById('res-dec');
-            decEl.innerText = student.decision;
-            
-            const decText = student.decision.toLowerCase();
-            const isValid = decText.includes('valid') || decText.includes('admis');
-            decEl.className = isValid ? 'info-val decision-valid' : 'info-val decision-ratt';
+            let foundResults =[];
+            const cleanInputMatricule = matricule.replace(/\s+/g, '');
 
-            currentStudentId = student.id;
-            currentResultsPdfUrl = urls.resultsUrl;
-            
-            const card = document.getElementById('student-result');
-            card.style.display = 'block';
-            if (isValid) startCelebration();
-            setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
-        } else {
-            document.getElementById('error-msg').innerText = "رقم التسجيل غير موجود في هذه القائمة.";
-            document.getElementById('error-msg').style.display = 'block';
+            for (let i = 0; i < files.length; i++) {
+                loader.innerText = `⏳ جاري البحث... (فحص سجل ${i+1} من ${files.length})`;
+                const students = await fetchRankingData(files[i].ranking_url);
+                
+                if (students) {
+                    const student = students.find(s => s.id === cleanInputMatricule);
+                    if (student) {
+                        const isDuplicate = foundResults.find(r => 
+                            r.file.semester === files[i].semester && 
+                            r.file.level === files[i].level && 
+                            r.file.academic_year === files[i].academic_year
+                        );
+                        
+                        if (!isDuplicate) {
+                            foundResults.push({ student, file: files[i] });
+                        }
+                    }
+                }
+            }
+
+            loader.style.display = 'none';
+
+            if (foundResults.length > 0) {
+                displayResults(foundResults);
+            } else {
+                showError("عذراً، لم يتم العثور على أي نتائج مطابقة لرقم التسجيل المدخل.");
+            }
+
+        } catch (err) {
+            console.error(err);
+            loader.style.display = 'none';
+            showError("حدث خطأ أثناء الاتصال بقاعدة البيانات.");
         }
     }
 
-    async function showTop20() {
-        resetView();
-        document.getElementById('loader').style.display = 'block';
+    function displayResults(results) {
+        const container = document.getElementById('results-container');
+        let anyValid = false;
 
-        const urls = await fetchLatestFiles();
-        if(!urls) {
-            document.getElementById('loader').style.display = 'none';
-            return;
+        results.sort((a, b) => {
+            const yearA = a.file.academic_year || "0000";
+            const yearB = b.file.academic_year || "0000";
+            if (yearA !== yearB) {
+                return yearB.localeCompare(yearA);
+            }
+            if (a.file.level !== b.file.level) {
+                return b.file.level.localeCompare(a.file.level);
+            }
+            return b.file.semester.localeCompare(a.file.semester);
+        });
+
+        results.forEach(res => {
+            const s = res.student;
+            const f = res.file;
+            const decText = s.decision.toLowerCase();
+            const isValid = decText.includes('valid') || decText.includes('admis');
+            const decClass = isValid ? 'decision-valid' : 'decision-ratt';
+            if (isValid) anyValid = true;
+
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.style.display = 'block';
+            
+            const yearDisplay = f.academic_year ? `${f.academic_year} | ` : '';
+            const badgeText = `${yearDisplay}${f.major} | ${f.level} - ${f.semester}`;
+            
+            card.innerHTML = `
+                <div class="semester-badge">${badgeText}</div>
+                <div class="student-info" style="margin-top: 15px;">
+                    <h2>${s.name}</h2>
+                    <div class="info-row"><span>رقم التسجيل:</span> <span class="info-val">${s.id}</span></div>
+                    <div class="info-row"><span>المعدل العام:</span> <span class="info-val" style="color:var(--primary); font-size:1.3rem;">${s.avg}</span></div>
+                    ${s.credit ? `<div class="info-row"><span>الرصيد (Crédits):</span> <span class="info-val" style="color:var(--primary); font-weight:bold;">${s.credit}</span></div>` : ''}
+                    <div class="info-row"><span>الترتيب:</span> <span class="info-val" style="color:var(--secondary);">${s.rank}</span></div>
+                    <div class="info-row"><span>القرار:</span> <span class="info-val ${decClass}">${s.decision}</span></div>
+                </div>
+                <button class="download-btn" onclick="downloadPrecisePDF('${s.id}', '${f.details_url}', this)">
+                    📥 تنزيل كشف النقاط
+                </button>
+                <div class="dl-msg" style="text-align:center; font-size:0.8rem; color:#666; margin-top:5px; display:none;">جاري المعالجة والقص الدقيق...</div>
+            `;
+            container.appendChild(card);
+        });
+
+        if (anyValid) {
+            document.getElementById('celebration-msg').style.display = 'block';
+            startCelebration();
         }
-
-        const students = await fetchRankingData(urls.rankingUrl);
-        document.getElementById('loader').style.display = 'none';
         
-        if(!students || students.length === 0) {
-            document.getElementById('error-msg').innerText = "لم يتم العثور على ملف النتائج.";
-            document.getElementById('error-msg').style.display = 'block';
-            return;
-        }
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 
-        students.sort((a,b) => a.rank - b.rank);
-        const top20 = students.slice(0, 20);
+    function showError(msg) {
+        const errEl = document.getElementById('error-msg');
+        errEl.innerText = msg;
+        errEl.style.display = 'block';
+    }
 
-        const tbody = document.getElementById('top20-body');
-        tbody.innerHTML = '';
+    // ==========================================
+    // 🏆 TOP 20 LOGIC
+    // ==========================================
+    function openTop20Modal() {
+        document.getElementById('top20-modal').style.display = 'flex';
+    }
+    
+    function closeTop20Modal() {
+        document.getElementById('top20-modal').style.display = 'none';
+    }
 
-        if(top20.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">لا توجد بيانات متاحة.</td></tr>';
-        } else {
+    async function fetchAndShowTop20() {
+        closeTop20Modal();
+        resetView();
+        
+        const year = document.getElementById('t20-year').value;
+        const major = document.getElementById('t20-major').value;
+        const level = document.getElementById('t20-level').value;
+        const semester = document.getElementById('t20-semester').value;
+
+        const loader = document.getElementById('loader');
+        loader.style.display = 'block';
+        loader.innerText = '⏳ جاري جلب قائمة الأوائل...';
+
+        try {
+            const { data, error } = await _supabase.from('results_metadata')
+                .select('*')
+                .eq('academic_year', year)
+                .eq('major', major)
+                .eq('level', level)
+                .eq('semester', semester)
+                .order('created_at', { ascending: false }).limit(1);
+
+            if (error || !data || data.length === 0) {
+                loader.style.display = 'none';
+                showError("لا توجد نتائج مسجلة لهذا التخصص والفصل في هذه السنة الجامعية.");
+                return;
+            }
+
+            const students = await fetchRankingData(data[0].ranking_url);
+            loader.style.display = 'none';
+
+            if(!students || students.length === 0) {
+                showError("حدث مشكلة في قراءة الملف."); return;
+            }
+
+            students.sort((a,b) => a.rank - b.rank);
+            const top20 = students.slice(0, 20);
+
+            document.getElementById('top20-info').innerText = `${year} | ${major} - ${level} - ${semester}`;
+            const tbody = document.getElementById('top20-body');
+            tbody.innerHTML = '';
+
             top20.forEach(s => {
-                const row = `
+                tbody.innerHTML += `
                     <tr>
                         <td><b>${s.rank}</b></td>
                         <td><a onclick="triggerQuickSearch('${s.id}')" class="clickable-id">${s.id}</a></td>
@@ -667,24 +725,28 @@
                         <td style="color:var(--primary); font-weight:bold;">${s.avg}</td>
                     </tr>
                 `;
-                tbody.innerHTML += row;
             });
+            
+            const topContainer = document.getElementById('top20-container');
+            topContainer.style.display = 'block';
+            topContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        } catch (e) {
+            loader.style.display = 'none';
+            showError("حدث خطأ أثناء جلب القائمة.");
         }
-        const topContainer = document.getElementById('top20-container');
-        topContainer.style.display = 'block';
-        setTimeout(() => topContainer.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
     }
 
     function triggerQuickSearch(id) {
         document.getElementById('matricule').value = id;
-        searchStudent();
+        searchAllSemesters();
     }
 
-    // الاحتفال
+    // ==========================================
+    // 🎉 الاحتفال وتحميل PDF
+    // ==========================================
     function startCelebration() {
-        const container = document.getElementById('celebration-msg');
-        container.style.display = 'block';
-        const symbols = ['🌹', '❤️', '💖', '💝', '✨', '🌸', '💕', '🎉', '⭐', '💐'];
+        const symbols =['🌹', '❤️', '💖', '💝', '✨', '🌸', '💕', '🎉', '⭐', '💐'];
         for (let i = 0; i < 50; i++) {
             const span = document.createElement('span');
             span.classList.add('floating-particle');
@@ -699,19 +761,15 @@
         }
     }
 
-    // تنزيل الملف (قص دقيق)
-    async function downloadPrecisePDF() {
-        if (!currentStudentId || !currentResultsPdfUrl) return;
-
-        const btn = document.getElementById('download-btn');
-        const msg = document.getElementById('dl-msg');
-        btn.disabled = true;
-        btn.classList.add('loading');
-        btn.innerText = "⏳ جاري المعالجة...";
+    async function downloadPrecisePDF(studentId, pdfUrl, btnElement) {
+        const msg = btnElement.nextElementSibling;
+        btnElement.disabled = true;
+        btnElement.classList.add('loading');
+        btnElement.innerText = "⏳ جاري المعالجة...";
         msg.style.display = 'block';
 
         try {
-            const existingPdfBytes = await fetch(currentResultsPdfUrl).then(res => {
+            const existingPdfBytes = await fetch(pdfUrl).then(res => {
                 if (!res.ok) throw new Error("File not found");
                 return res.arrayBuffer();
             });
@@ -725,9 +783,8 @@
                 const page = await pdfDocjs.getPage(i);
                 const content = await page.getTextContent();
                 for (let item of content.items) {
-                    // إزالة المسافات للتأكد من المطابقة
                     const itemStrClean = item.str.replace(/\s+/g, '');
-                    if (itemStrClean.includes(currentStudentId)) {
+                    if (itemStrClean.includes(studentId)) {
                         startPage = i - 1;
                         startY = item.transform[5];
                         let nextStudents = content.items.filter(itm => itm.str.replace(/\s+/g, '').match(/I\d{4,}/) && itm.transform[5] < startY);
@@ -758,7 +815,7 @@
             const { PDFDocument } = PDFLib;
             const pdfDoc = await PDFDocument.load(existingPdfBytes);
             const newPdf = await PDFDocument.create();
-            const [page1] = await newPdf.copyPages(pdfDoc, [startPage]);
+            const [page1] = await newPdf.copyPages(pdfDoc,[startPage]);
             const { width, height } = page1.getSize();
             const cropTop = Math.min(height, startY + 60); 
             const cropBottom = spansToNextPage ? 0 : (endY + 10); 
@@ -766,7 +823,7 @@
             newPdf.addPage(page1);
 
             if (spansToNextPage) {
-                const [page2] = await newPdf.copyPages(pdfDoc, [startPage + 1]);
+                const [page2] = await newPdf.copyPages(pdfDoc,[startPage + 1]);
                 const page2Bottom = nextPageEndY + 10;
                 page2.setCropBox(0, page2Bottom, width, height - page2Bottom);
                 newPdf.addPage(page2);
@@ -776,7 +833,7 @@
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `Resultat_${currentStudentId}.pdf`;
+            link.download = `Resultat_${studentId}.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -785,9 +842,9 @@
             console.error(error);
             alert("حدث خطأ أثناء معالجة الملف، ربما الملف التفصيلي تالف أو الطالب غير موجود.");
         } finally {
-            btn.disabled = false;
-            btn.classList.remove('loading');
-            btn.innerText = "📥 تنزيل كشف النقاط (نسخة الطالب فقط)";
+            btnElement.disabled = false;
+            btnElement.classList.remove('loading');
+            btnElement.innerText = "📥 تنزيل كشف النقاط";
             msg.style.display = 'none';
         }
     }
@@ -806,41 +863,5 @@
 </script>
 <!-- END PROTECTION CODE -->
 
-
-    <!-- START PROTECTION CODE -->
-    <script>
-    (function() {
-        // منع الزر الأيمن
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-        });
-
-        // منع اختصارات لوحة المفاتيح
-        document.onkeydown = function(e) {
-            // F12
-            if(e.keyCode == 123) {
-                return false;
-            }
-            // Ctrl+I (DevTools)
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
-                return false;
-            }
-            // Ctrl+J (Console)
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
-                return false;
-            }
-            // Ctrl+C (Inspect)
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) {
-                return false;
-            }
-            // Ctrl+U (View Source)
-            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
-                return false;
-            }
-        }
-    })();
-    </script>
-    <!-- END PROTECTION CODE -->
-    
 </body>
 </html>
