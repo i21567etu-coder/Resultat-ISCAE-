@@ -30,6 +30,20 @@
 
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-gradient); margin: 0; padding: 15px; color: var(--text); direction: rtl; padding-bottom: 50px; }
         
+        .loader { 
+            display: none; 
+            text-align: center; 
+            padding: 20px; 
+            font-weight: bold; 
+            color: var(--primary); 
+            font-size: 1.1rem;
+            animation: pulse 1.5s infinite; /* إضافة تأثير النبض */
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
         header { 
             background: var(--primary); color: white; padding: 20px 15px; 
             text-align: center; border-bottom: 4px solid var(--secondary);
@@ -550,7 +564,9 @@
         resetView();
         const loader = document.getElementById('loader');
         loader.style.display = 'block';
-        loader.innerText = '⏳ جاري جلب السجلات من قاعدة البيانات...';
+        
+        // النص الثابت الذي سيظهر طوال فترة البحث
+        loader.innerText = '⏳ جاري البحث...';
 
         try {
             const { data: files, error } = await _supabase.from('results_metadata').select('*').order('created_at', { ascending: false });
@@ -565,8 +581,8 @@
             let foundResults =[];
             const cleanInputMatricule = matricule.replace(/\s+/g, '');
 
+            // تم إزالة سطر تحديث الأرقام من داخل هذه الحلقة
             for (let i = 0; i < files.length; i++) {
-                loader.innerText = `⏳ جاري البحث... (فحص سجل ${i+1} من ${files.length})`;
                 const students = await fetchRankingData(files[i].ranking_url);
                 
                 if (students) {
