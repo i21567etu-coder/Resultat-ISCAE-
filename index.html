@@ -22,7 +22,7 @@
     <style>
         :root { 
             --primary: #005C29;
-            --secondary: #FFD700;
+            --secondary: #2563eb; /* تم تغيير الذهبي إلى الأزرق */
             --bg-gradient: linear-gradient(135deg, #f0fdf4 0%, #e6f7ed 100%);
             --text: #1a2e1a;
             --radius: 15px;
@@ -37,7 +37,7 @@
             font-weight: bold; 
             color: var(--primary); 
             font-size: 1.1rem;
-            animation: pulse 1.5s infinite; /* إضافة تأثير النبض */
+            animation: pulse 1.5s infinite;
         }
         @keyframes pulse {
             0% { opacity: 1; }
@@ -54,7 +54,7 @@
         header h1 { margin: 0; font-size: 1.8rem; pointer-events: none; }
         
         .top-dev {
-            color: var(--secondary); font-size: 0.9rem; margin-top: 5px;
+            color: #ffffff; font-size: 0.9rem; margin-top: 5px;
             font-weight: bold; letter-spacing: 0.5px; opacity: 0.9;
         }
         
@@ -83,10 +83,9 @@
         }
         
         .btn-search { background: var(--primary); color: white; font-size: 1.1rem; }
-        .btn-top20 { background: var(--secondary); color: #004d22; }
+        .btn-top20 { background: var(--secondary); color: #ffffff; } /* اللون الجديد للزر */
         button:hover { transform: translateY(-2px); opacity: 0.95; }
 
-        /* Results Container */
         #results-container {
             display: flex;
             flex-direction: column;
@@ -136,12 +135,10 @@
         td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
         tr:nth-child(even) { background: #fafafa; }
         
-        .loader { display: none; text-align: center; padding: 20px; font-weight: bold; color: var(--primary); font-size: 1.1rem;}
         .error { color: #dc2626; text-align: center; display: none; margin-top: 10px; padding: 15px; background: #fee2e2; border-radius: 8px; border: 1px solid #fecaca; }
 
-        .clickable-id { color: var(--primary); text-decoration: underline; font-weight: bold; cursor: pointer; }
+        .clickable-id { color: var(--secondary); text-decoration: underline; font-weight: bold; cursor: pointer; }
         
-        /* Modal Style */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); z-index: 2000; display: none;
@@ -151,40 +148,33 @@
             background: white; padding: 30px; border-radius: 20px;
             width: 90%; max-width: 500px; text-align: right;
             border: 2px solid var(--secondary);
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.3);
             position: relative;
             max-height: 90vh;
             overflow-y: auto;
         }
         .modal-box h2 { color: var(--primary); margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .admin-btn { background: #0f172a; color: #fbbf24; margin-top: 10px; width: 100%; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .admin-btn { background: #0f172a; color: #60a5fa; margin-top: 10px; width: 100%; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .close-modal { 
             position: absolute; top: 20px; left: 20px; cursor: pointer; font-size: 1.5rem; color: #aaa; 
         }
         .file-input-wrapper { margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px dashed #cbd5e1; }
         
-        /* Celebration */
         #celebration-msg {
             display: none; position: relative; text-align: center;
-            background: linear-gradient(135deg, #fff0f5, #fff);
+            background: linear-gradient(135deg, #f0f9ff, #fff);
             padding: 25px; border-radius: 15px; margin-bottom: 20px;
-            border: 2px solid #bbf7d0; overflow: hidden; 
-            box-shadow: 0 5px 15px rgba(22, 163, 74, 0.2);
+            border: 2px solid #bae6fd; overflow: hidden; 
+            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.1);
         }
         .congrats-text {
-            display: block; color: #16a34a; font-size: 1.8rem;
+            display: block; color: var(--secondary); font-size: 1.8rem;
             font-weight: 900; text-shadow: 1px 1px 0 #fff;
             position: relative; z-index: 10;
             animation: bounceIn 1s infinite alternate;
         }
-        .floating-particle {
-            position: fixed; font-size: 2rem;
-            animation: floatUp linear forwards; opacity: 1; z-index: 1000;
-            pointer-events: none;
-        }
 
-        @keyframes floatUp { 0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; } 100% { transform: translateY(-100vh) rotate(360deg) scale(0.3); opacity: 0; } }
-        @keyframes bounceIn { from { transform: scale(1); } to { transform: scale(1.1); } }
+        @keyframes bounceIn { from { transform: scale(1); } to { transform: scale(1.05); } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @media (max-width: 600px) { .btn-group { flex-direction: column; } .info-row { font-size: 1rem; } }
 
@@ -197,11 +187,9 @@
     <div class="top-dev">UNEM ISCAE</div>
 </header>
 
-<!-- Admin Login & Upload Modal -->
 <div id="admin-modal" class="modal-overlay">
     <div class="modal-box">
         <span class="close-modal" onclick="closeAdmin()">✖</span>
-        
         <div id="admin-login-step">
             <h2>🔐 دخول الإدارة</h2>
             <div class="form-group">
@@ -211,16 +199,9 @@
             <button class="admin-btn" onclick="checkAdminPass()">دخول</button>
             <p id="login-error" style="color:red; display:none; margin-top:10px;">الرمز غير صحيح!</p>
         </div>
-
         <div id="admin-upload-step" style="display:none;">
             <h2>📤 رفع النتائج</h2>
-            
-            <div class="form-group">
-                <label>السنة الجامعية:</label>
-                <!-- سيتم ملؤها تلقائياً بالكود -->
-                <select id="up-year"></select>
-            </div>
-
+            <div class="form-group"><label>السنة الجامعية:</label><select id="up-year"></select></div>
             <div class="form-group">
                 <label>التخصص:</label>
                 <select id="up-major">
@@ -240,39 +221,20 @@
                     <option value="L3">Licence 3 (L3)</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label>الفصل:</label>
-                <select id="up-semester"></select>
-            </div>
-            
-            <div class="file-input-wrapper">
-                <label>📄 ملف النتائج التفصيلي (Resultat):</label>
-                <input type="file" id="file-details" accept="application/pdf">
-            </div>
-            
-            <div class="file-input-wrapper">
-                <label>🏆 ملف الترتيب (Classement):</label>
-                <input type="file" id="file-ranking" accept="application/pdf">
-            </div>
-
+            <div class="form-group"><label>الفصل:</label><select id="up-semester"></select></div>
+            <div class="file-input-wrapper"><label>📄 ملف النتائج التفصيلي:</label><input type="file" id="file-details" accept="application/pdf"></div>
+            <div class="file-input-wrapper"><label>🏆 ملف الترتيب:</label><input type="file" id="file-ranking" accept="application/pdf"></div>
             <button class="admin-btn" style="margin-top:20px; background:var(--primary); color:white;" onclick="uploadFiles()">رفع البيانات</button>
             <div id="upload-status" style="margin-top:15px; font-weight:bold; font-size:0.9rem; text-align:center;"></div>
         </div>
     </div>
 </div>
 
-<!-- Top 20 Filter Modal -->
 <div id="top20-modal" class="modal-overlay">
     <div class="modal-box">
         <span class="close-modal" onclick="closeTop20Modal()">✖</span>
         <h2>🏆 تصفية العشرون الأوائل</h2>
-
-        <div class="form-group">
-            <label>السنة الجامعية:</label>
-            <!-- سيتم ملؤها تلقائياً بالكود -->
-            <select id="t20-year"></select>
-        </div>
-
+        <div class="form-group"><label>السنة الجامعية:</label><select id="t20-year"></select></div>
         <div class="form-group">
             <label>التخصص (Filière)</label>
             <select id="t20-major">
@@ -292,19 +254,15 @@
                 <option value="L3">Licence 3 (L3)</option>
             </select>
         </div>
-        <div class="form-group">
-            <label>الفصل (Semestre)</label>
-            <select id="t20-semester"></select>
-        </div>
-        <button class="admin-btn" style="background:var(--secondary); color:#004d22; font-size:1.1rem; padding:12px;" onclick="fetchAndShowTop20()">عرض القائمة</button>
+        <div class="form-group"><label>الفصل (Semestre)</label><select id="t20-semester"></select></div>
+        <button class="admin-btn" style="background:var(--secondary); color:#fff; font-size:1.1rem; padding:12px;" onclick="fetchAndShowTop20()">عرض القائمة</button>
     </div>
 </div>
 
 <div class="container">
     <div class="search-box">
         <h3 style="color:var(--primary); margin-top:0;">استعلام سريع عن النتائج</h3>
-        <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">أدخل رقم التسجيل الخاص بك للبحث في جميع الفصول والتخصصات المتاحة.</p>
-        
+        <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">أدخل رقم التسجيل الخاص بك للبحث في جميع الفصول المتاحة.</p>
         <form id="searchForm">
             <div class="form-group">
                 <input type="text" id="matricule" placeholder="رقم التسجيل (مثال: I21567)" style="text-transform: uppercase; text-align: center; direction: ltr; font-size:1.2rem; padding:15px; font-weight:bold;">
@@ -320,27 +278,19 @@
         <div id="error-msg" class="error"></div>
     </div>
 
-    <!-- رسالة الاحتفال -->
     <div id="celebration-msg">
         <span class="congrats-text">🎉 ألف مبروك النجاح 🎉</span>
     </div>
 
-    <!-- حاوية عرض النتائج (الفصول المتعددة) -->
     <div id="results-container"></div>
 
-    <!-- حاوية العشرون الأوائل -->
     <div id="top20-container" class="result-card">
         <h2 style="color:var(--primary); text-align:center;">🏆 قائمة العشرون الأوائل</h2>
         <p id="top20-info" style="text-align:center; color:#666; direction:ltr; font-weight:bold;"></p>
         <div style="overflow-x:auto;">
             <table>
                 <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Matricule</th>
-                        <th>Nom et Prénom</th>
-                        <th>Moyenne</th>
-                    </tr>
+                    <tr><th>#</th><th>Matricule</th><th>Nom et Prénom</th><th>Moyenne</th></tr>
                 </thead>
                 <tbody id="top20-body"></tbody>
             </table>
@@ -349,13 +299,8 @@
 </div>
 
 <script>
-    // ==========================================
-    // ⚠️ إعدادات Supabase
-    // ==========================================
     const SUPABASE_URL = 'https://chjxwcliodlevzorjush.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNoanh3Y2xpb2RsZXZ6b3JqdXNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3MjUzNDIsImV4cCI6MjA3OTMwMTM0Mn0.PVvBRAMsscwbnDQt5Qg6Ni9z39WeI981aBCkMnZOnJQ';
-    
-    // تهيئة Supabase
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const ADMIN_PASS = "I21567@MDA"; 
     
@@ -371,24 +316,16 @@
         'L3': { 'S5': 'Semestre 5', 'S6': 'Semestre 6' }
     };
 
-    // توليد السنوات الأكاديمية ديناميكياً (الحالية والماضية فقط)
     function populateAcademicYears() {
         const now = new Date();
         const year = now.getFullYear();
-        const month = now.getMonth(); // 0 = يناير, 8 = سبتمبر
-        // إذا كنا في سبتمبر أو بعده، السنة الجامعية تبدأ من السنة الحالية. عدا ذلك تبدأ من السنة الماضية.
+        const month = now.getMonth();
         const startYear = month >= 8 ? year : year - 1; 
-        
         const currentAcYear = `${startYear}-${startYear + 1}`;
         const prevAcYear = `${startYear - 1}-${startYear}`;
-        
-        const upYearSelect = document.getElementById('up-year');
-        const t20YearSelect = document.getElementById('t20-year');
-        
         const optionsHTML = `<option value="${currentAcYear}">${currentAcYear}</option><option value="${prevAcYear}">${prevAcYear}</option>`;
-        
-        upYearSelect.innerHTML = optionsHTML;
-        t20YearSelect.innerHTML = optionsHTML;
+        document.getElementById('up-year').innerHTML = optionsHTML;
+        document.getElementById('t20-year').innerHTML = optionsHTML;
     }
 
     function updateUploadSemesters() { populateSemesters('up-level', 'up-semester'); }
@@ -407,14 +344,10 @@
         }
     }
     
-    // Initialize default dropdowns
     populateAcademicYears();
     updateUploadSemesters();
     updateT20Semesters();
 
-    // ==========================================
-    // 🎓 ADMIN LOGIC (5 Taps)
-    // ==========================================
     let tapCount = 0;
     document.getElementById('main-header').addEventListener('click', () => {
         tapCount++;
@@ -429,10 +362,6 @@
         document.getElementById('admin-modal').style.display = 'none';
         document.getElementById('admin-login-step').style.display = 'block';
         document.getElementById('admin-upload-step').style.display = 'none';
-        document.getElementById('admin-pass').value = '';
-        document.getElementById('file-details').value = '';
-        document.getElementById('file-ranking').value = '';
-        document.getElementById('upload-status').innerHTML = '';
     }
 
     function checkAdminPass() {
@@ -440,9 +369,8 @@
             document.getElementById('admin-login-step').style.display = 'none';
             document.getElementById('admin-upload-step').style.display = 'block';
         } else {
-            const err = document.getElementById('login-error');
-            err.style.display = 'block';
-            setTimeout(() => err.style.display = 'none', 2000);
+            document.getElementById('login-error').style.display = 'block';
+            setTimeout(() => document.getElementById('login-error').style.display = 'none', 2000);
         }
     }
 
@@ -455,12 +383,11 @@
         const fileDetails = document.getElementById('file-details').files[0];
         const fileRanking = document.getElementById('file-ranking').files[0];
 
-        if (!major || !level || !semester || !fileDetails || !fileRanking) {
-            statusDiv.innerHTML = '<span style="color:red">يرجى ملء جميع الحقول واختيار الملفين.</span>'; return;
+        if (!fileDetails || !fileRanking) {
+            statusDiv.innerHTML = '<span style="color:red">يرجى اختيار الملفين.</span>'; return;
         }
 
-        statusDiv.innerHTML = '<span style="color:#005C29">⏳ جاري الرفع... يرجى الانتظار.</span>';
-
+        statusDiv.innerHTML = '⏳ جاري الرفع...';
         try {
             const upload = async (file, prefix) => {
                 const fileName = `${prefix}_${major}_${level}_${semester}_${Date.now()}.pdf`;
@@ -469,39 +396,19 @@
                 const { data } = _supabase.storage.from('isc_results').getPublicUrl(fileName);
                 return data.publicUrl;
             };
-
             const detailsUrl = await upload(fileDetails, 'DETAILS');
             const rankingUrl = await upload(fileRanking, 'RANKING');
-
-            const { error: dbError } = await _supabase.from('results_metadata')
-                .insert([{ academic_year: academicYear, major, level, semester, details_url: detailsUrl, ranking_url: rankingUrl }]);
-
+            const { error: dbError } = await _supabase.from('results_metadata').insert([{ academic_year: academicYear, major, level, semester, details_url: detailsUrl, ranking_url: rankingUrl }]);
             if (dbError) throw dbError;
-            
-            // نجاح الرفع، تفريغ الخانات للسماح برفع ملفات جديدة مع إبقاء النافذة مفتوحة
-            statusDiv.innerHTML = '<span style="color:green">✅ تم الرفع بنجاح! يمكنك رفع ملفات أخرى الآن.</span>';
-            document.getElementById('file-details').value = '';
-            document.getElementById('file-ranking').value = '';
-            
-            setTimeout(() => { 
-                statusDiv.innerHTML = ''; 
-            }, 5000); // الرسالة تختفي بعد 5 ثواني ولكن اللوحة تبقى مفتوحة
-
-        } catch (err) {
-            statusDiv.innerHTML = '<span style="color:red">❌ خطأ: ' + err.message + '</span>';
-        }
+            statusDiv.innerHTML = '<span style="color:green">✅ تم الرفع بنجاح!</span>';
+        } catch (err) { statusDiv.innerHTML = '<span style="color:red">❌ خطأ: ' + err.message + '</span>'; }
     }
-
-    // ==========================================
-    // 🔍 STUDENT SEARCH LOGIC (Matricule Only)
-    // ==========================================
 
     function resetView() {
         document.getElementById('results-container').innerHTML = '';
         document.getElementById('top20-container').style.display = 'none';
         document.getElementById('error-msg').style.display = 'none';
         document.getElementById('celebration-msg').style.display = 'none';
-        document.querySelectorAll('.floating-particle').forEach(p => p.remove());
     }
 
     async function fetchRankingData(pdfUrl) {
@@ -509,11 +416,9 @@
             const loadingTask = pdfjsLib.getDocument(pdfUrl);
             const pdf = await loadingTask.promise;
             let students =[];
-
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const textContent = await page.getTextContent();
-                
                 let rows =[]; 
                 textContent.items.forEach(item => {
                     const y = item.transform[5]; 
@@ -523,26 +428,17 @@
                     if (foundRow) foundRow.items.push({ str, x });
                     else rows.push({ y, items:[{ str, x }] });
                 });
-
                 rows.sort((a, b) => b.y - a.y);
-
                 rows.forEach(row => {
                     const lineItems = row.items.sort((a, b) => a.x - b.x);
                     const lineStr = lineItems.map(t => t.str).join(" ").trim();
-                    
                     let match = lineStr.match(/^(\d+)\s+(I\s*\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(\d{1,2})\s+(.+)$/i);
                     let hasCredit = true;
-                    
-                    if (!match) {
-                        match = lineStr.match(/^(\d+)\s+(I\s*\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(.+)$/i);
-                        hasCredit = false;
-                    }
-                    
+                    if (!match) { match = lineStr.match(/^(\d+)\s+(I\s*\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(.+)$/i); hasCredit = false; }
                     if(match) {
-                        let cleanMatricule = match[2].replace(/\s+/g, '').toUpperCase();
                         students.push({
                             rank: parseInt(match[1]),
-                            id: cleanMatricule,
+                            id: match[2].replace(/\s+/g, '').toUpperCase(),
                             name: match[3].trim(),
                             avg: match[4].replace(',', '.'),
                             credit: hasCredit ? match[5] : null, 
@@ -557,239 +453,86 @@
 
     async function searchAllSemesters() {
         const matricule = document.getElementById('matricule').value.trim().toUpperCase();
-        if(!matricule) { 
-            showError("الرجاء إدخال رقم التسجيل للبحث."); return; 
-        }
-
+        if(!matricule) { showError("الرجاء إدخال رقم التسجيل."); return; }
         resetView();
         const loader = document.getElementById('loader');
         loader.style.display = 'block';
-        
-        // النص الثابت الذي سيظهر طوال فترة البحث
-        loader.innerText = '⏳ جاري البحث...';
-
         try {
             const { data: files, error } = await _supabase.from('results_metadata').select('*').order('created_at', { ascending: false });
-            
             if (error) throw error;
-            if (!files || files.length === 0) {
-                loader.style.display = 'none';
-                showError("لا توجد أي نتائج مرفوعة في النظام حالياً.");
-                return;
-            }
-
             let foundResults =[];
-            const cleanInputMatricule = matricule.replace(/\s+/g, '');
-
-            // تم إزالة سطر تحديث الأرقام من داخل هذه الحلقة
-            for (let i = 0; i < files.length; i++) {
-                const students = await fetchRankingData(files[i].ranking_url);
-                
+            const cleanInput = matricule.replace(/\s+/g, '');
+            for (let file of files) {
+                const students = await fetchRankingData(file.ranking_url);
                 if (students) {
-                    const student = students.find(s => s.id === cleanInputMatricule);
-                    if (student) {
-                        const isDuplicate = foundResults.find(r => 
-                            r.file.semester === files[i].semester && 
-                            r.file.level === files[i].level && 
-                            r.file.academic_year === files[i].academic_year
-                        );
-                        
-                        if (!isDuplicate) {
-                            foundResults.push({ student, file: files[i] });
-                        }
-                    }
+                    const student = students.find(s => s.id === cleanInput);
+                    if (student) foundResults.push({ student, file });
                 }
             }
-
             loader.style.display = 'none';
-
-            if (foundResults.length > 0) {
-                displayResults(foundResults);
-            } else {
-                showError("عذراً، لم يتم العثور على أي نتائج مطابقة لرقم التسجيل المدخل.");
-            }
-
-        } catch (err) {
-            console.error(err);
-            loader.style.display = 'none';
-            showError("حدث خطأ أثناء الاتصال بقاعدة البيانات.");
-        }
+            if (foundResults.length > 0) displayResults(foundResults);
+            else showError("لم يتم العثور على نتائج.");
+        } catch (err) { loader.style.display = 'none'; showError("خطأ في الاتصال."); }
     }
 
     function displayResults(results) {
         const container = document.getElementById('results-container');
-        let anyValid = false;
-
-        results.sort((a, b) => {
-            const yearA = a.file.academic_year || "0000";
-            const yearB = b.file.academic_year || "0000";
-            if (yearA !== yearB) {
-                return yearB.localeCompare(yearA);
-            }
-            if (a.file.level !== b.file.level) {
-                return b.file.level.localeCompare(a.file.level);
-            }
-            return b.file.semester.localeCompare(a.file.semester);
-        });
-
         results.forEach(res => {
-            const s = res.student;
-            const f = res.file;
-            const decText = s.decision.toLowerCase();
-            const isValid = decText.includes('valid') || decText.includes('admis');
-            const decClass = isValid ? 'decision-valid' : 'decision-ratt';
-            if (isValid) anyValid = true;
-
+            const s = res.student; const f = res.file;
+            const isValid = s.decision.toLowerCase().includes('valid') || s.decision.toLowerCase().includes('admis');
             const card = document.createElement('div');
-            card.className = 'result-card';
-            card.style.display = 'block';
-            
-            const yearDisplay = f.academic_year ? `${f.academic_year} | ` : '';
-            const badgeText = `${yearDisplay}${f.major} | ${f.level} - ${f.semester}`;
-            
+            card.className = 'result-card'; card.style.display = 'block';
             card.innerHTML = `
-                <div class="semester-badge">${badgeText}</div>
-                <div class="student-info" style="margin-top: 15px;">
+                <div class="semester-badge">${f.major} | ${f.level} - ${f.semester}</div>
+                <div class="student-info" style="margin-top:15px;">
                     <h2>${s.name}</h2>
                     <div class="info-row"><span>رقم التسجيل:</span> <span class="info-val">${s.id}</span></div>
-                    <div class="info-row"><span>المعدل العام:</span> <span class="info-val" style="color:var(--primary); font-size:1.3rem;">${s.avg}</span></div>
-                    ${s.credit ? `<div class="info-row"><span>الرصيد (Crédits):</span> <span class="info-val" style="color:var(--primary); font-weight:bold;">${s.credit}</span></div>` : ''}
+                    <div class="info-row"><span>المعدل:</span> <span class="info-val" style="color:var(--primary);">${s.avg}</span></div>
                     <div class="info-row"><span>الترتيب:</span> <span class="info-val" style="color:var(--secondary);">${s.rank}</span></div>
-                    <div class="info-row"><span>القرار:</span> <span class="info-val ${decClass}">${s.decision}</span></div>
+                    <div class="info-row"><span>القرار:</span> <span class="info-val ${isValid?'decision-valid':'decision-ratt'}">${s.decision}</span></div>
                 </div>
-                <button class="download-btn" onclick="downloadPrecisePDF('${s.id}', '${f.details_url}', this)">
-                    📥 تنزيل كشف النقاط
-                </button>
-                <div class="dl-msg" style="text-align:center; font-size:0.8rem; color:#666; margin-top:5px; display:none;">جاري المعالجة والقص الدقيق...</div>
+                <button class="download-btn" onclick="downloadPrecisePDF('${s.id}', '${f.details_url}', this)">📥 تنزيل كشف النقاط</button>
             `;
             container.appendChild(card);
+            if (isValid) document.getElementById('celebration-msg').style.display = 'block';
         });
-
-        if (anyValid) {
-            document.getElementById('celebration-msg').style.display = 'block';
-            startCelebration();
-        }
-        
-        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function showError(msg) {
         const errEl = document.getElementById('error-msg');
-        errEl.innerText = msg;
-        errEl.style.display = 'block';
+        errEl.innerText = msg; errEl.style.display = 'block';
     }
 
-    // ==========================================
-    // 🏆 TOP 20 LOGIC
-    // ==========================================
-    function openTop20Modal() {
-        document.getElementById('top20-modal').style.display = 'flex';
-    }
-    
-    function closeTop20Modal() {
-        document.getElementById('top20-modal').style.display = 'none';
-    }
+    function openTop20Modal() { document.getElementById('top20-modal').style.display = 'flex'; }
+    function closeTop20Modal() { document.getElementById('top20-modal').style.display = 'none'; }
 
     async function fetchAndShowTop20() {
-        closeTop20Modal();
-        resetView();
-        
-        const year = document.getElementById('t20-year').value;
-        const major = document.getElementById('t20-major').value;
-        const level = document.getElementById('t20-level').value;
-        const semester = document.getElementById('t20-semester').value;
-
-        const loader = document.getElementById('loader');
-        loader.style.display = 'block';
-        loader.innerText = '⏳ جاري جلب قائمة الأوائل...';
-
+        closeTop20Modal(); resetView();
+        const loader = document.getElementById('loader'); loader.style.display = 'block';
         try {
-            const { data, error } = await _supabase.from('results_metadata')
-                .select('*')
-                .eq('academic_year', year)
-                .eq('major', major)
-                .eq('level', level)
-                .eq('semester', semester)
-                .order('created_at', { ascending: false }).limit(1);
-
-            if (error || !data || data.length === 0) {
-                loader.style.display = 'none';
-                showError("لا توجد نتائج مسجلة لهذا التخصص والفصل في هذه السنة الجامعية.");
-                return;
-            }
-
+            const { data } = await _supabase.from('results_metadata').select('*')
+                .eq('academic_year', document.getElementById('t20-year').value)
+                .eq('major', document.getElementById('t20-major').value)
+                .eq('level', document.getElementById('t20-level').value)
+                .eq('semester', document.getElementById('t20-semester').value).limit(1);
+            if (!data[0]) { loader.style.display = 'none'; showError("لا توجد بيانات."); return; }
             const students = await fetchRankingData(data[0].ranking_url);
             loader.style.display = 'none';
-
-            if(!students || students.length === 0) {
-                showError("حدث مشكلة في قراءة الملف."); return;
-            }
-
-            students.sort((a,b) => a.rank - b.rank);
-            const top20 = students.slice(0, 20);
-
-            document.getElementById('top20-info').innerText = `${year} | ${major} - ${level} - ${semester}`;
-            const tbody = document.getElementById('top20-body');
-            tbody.innerHTML = '';
-
+            const top20 = students.sort((a,b)=>a.rank-b.rank).slice(0, 20);
+            const tbody = document.getElementById('top20-body'); tbody.innerHTML = '';
             top20.forEach(s => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td><b>${s.rank}</b></td>
-                        <td><a onclick="triggerQuickSearch('${s.id}')" class="clickable-id">${s.id}</a></td>
-                        <td>${s.name}</td>
-                        <td style="color:var(--primary); font-weight:bold;">${s.avg}</td>
-                    </tr>
-                `;
+                tbody.innerHTML += `<tr><td>${s.rank}</td><td><a onclick="triggerQuickSearch('${s.id}')" class="clickable-id">${s.id}</a></td><td>${s.name}</td><td>${s.avg}</td></tr>`;
             });
-            
-            const topContainer = document.getElementById('top20-container');
-            topContainer.style.display = 'block';
-            topContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-        } catch (e) {
-            loader.style.display = 'none';
-            showError("حدث خطأ أثناء جلب القائمة.");
-        }
+            document.getElementById('top20-container').style.display = 'block';
+        } catch (e) { loader.style.display = 'none'; }
     }
 
-    function triggerQuickSearch(id) {
-        document.getElementById('matricule').value = id;
-        searchAllSemesters();
-    }
-
-    // ==========================================
-    // 🎉 الاحتفال وتحميل PDF
-    // ==========================================
-    function startCelebration() {
-        const symbols =['🌹', '❤️', '💖', '💝', '✨', '🌸', '💕', '🎉', '⭐', '💐'];
-        for (let i = 0; i < 50; i++) {
-            const span = document.createElement('span');
-            span.classList.add('floating-particle');
-            span.innerText = symbols[Math.floor(Math.random() * symbols.length)];
-            span.style.left = Math.random() * 100 + '%';
-            span.style.top = Math.random() * 50 + 50 + '%';
-            span.style.animationDuration = (Math.random() * 3 + 3) + 's';
-            span.style.animationDelay = Math.random() * 2 + 's';
-            span.style.fontSize = (Math.random() * 2 + 1.5) + 'rem';
-            document.body.appendChild(span);
-            setTimeout(() => { span.remove(); }, 6000);
-        }
-    }
+    function triggerQuickSearch(id) { document.getElementById('matricule').value = id; searchAllSemesters(); }
 
     async function downloadPrecisePDF(studentId, pdfUrl, btnElement) {
-        const msg = btnElement.nextElementSibling;
-        btnElement.disabled = true;
-        btnElement.classList.add('loading');
-        btnElement.innerText = "⏳ جاري المعالجة...";
-        msg.style.display = 'block';
-
+        btnElement.disabled = true; btnElement.innerText = "⏳ جاري القص الدقيق...";
         try {
-            const existingPdfBytes = await fetch(pdfUrl).then(res => {
-                if (!res.ok) throw new Error("File not found");
-                return res.arrayBuffer();
-            });
-            
+            const existingPdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
             const loadingTask = pdfjsLib.getDocument({ data: existingPdfBytes });
             const pdfDocjs = await loadingTask.promise;
             
@@ -798,17 +541,18 @@
             for (let i = 1; i <= pdfDocjs.numPages; i++) {
                 const page = await pdfDocjs.getPage(i);
                 const content = await page.getTextContent();
-                for (let item of content.items) {
-                    const itemStrClean = item.str.replace(/\s+/g, '');
-                    if (itemStrClean.includes(studentId)) {
+                const items = content.items;
+                for (let j=0; j<items.length; j++) {
+                    if (items[j].str.replace(/\s+/g, '').includes(studentId)) {
                         startPage = i - 1;
-                        startY = item.transform[5];
-                        let nextStudents = content.items.filter(itm => itm.str.replace(/\s+/g, '').match(/I\d{4,}/) && itm.transform[5] < startY);
+                        startY = items[j].transform[5];
+                        // البحث عن الطالب التالي في نفس الصفحة لضبط نهاية القص
+                        let nextStudents = items.filter(itm => itm.str.replace(/\s+/g, '').match(/I\d{4,}/) && itm.transform[5] < startY - 10);
                         if (nextStudents.length > 0) {
                             nextStudents.sort((a, b) => b.transform[5] - a.transform[5]);
-                            endY = nextStudents[0].transform[5]; 
+                            endY = nextStudents[0].transform[5] + 5; // ترك مساحة بسيطة جداً
                         } else {
-                            endY = 30; 
+                            endY = 20; 
                             if (i < pdfDocjs.numPages) {
                                 const nextPage = await pdfDocjs.getPage(i + 1);
                                 const nextContent = await nextPage.getTextContent();
@@ -816,7 +560,7 @@
                                 if (page2Students.length > 0) {
                                     spansToNextPage = true;
                                     page2Students.sort((a, b) => b.transform[5] - a.transform[5]);
-                                    nextPageEndY = page2Students[0].transform[5];
+                                    nextPageEndY = page2Students[0].transform[5] + 5;
                                 }
                             }
                         }
@@ -826,22 +570,21 @@
                 if (startPage !== -1) break;
             }
 
-            if (startPage === -1) throw new Error("الطالب غير موجود في ملف التفاصيل");
-
             const { PDFDocument } = PDFLib;
             const pdfDoc = await PDFDocument.load(existingPdfBytes);
             const newPdf = await PDFDocument.create();
             const [page1] = await newPdf.copyPages(pdfDoc,[startPage]);
             const { width, height } = page1.getSize();
-            const cropTop = Math.min(height, startY + 60); 
-            const cropBottom = spansToNextPage ? 0 : (endY + 10); 
+            
+            // تعديل الهوامش لتكون ضيقة جداً (Precision Crop)
+            const cropTop = Math.min(height, startY + 35); 
+            const cropBottom = spansToNextPage ? 0 : endY; 
             page1.setCropBox(0, cropBottom, width, cropTop - cropBottom);
             newPdf.addPage(page1);
 
             if (spansToNextPage) {
                 const [page2] = await newPdf.copyPages(pdfDoc,[startPage + 1]);
-                const page2Bottom = nextPageEndY + 10;
-                page2.setCropBox(0, page2Bottom, width, height - page2Bottom);
+                page2.setCropBox(0, nextPageEndY, width, height - nextPageEndY);
                 newPdf.addPage(page2);
             }
 
@@ -850,34 +593,10 @@
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = `Resultat_${studentId}.pdf`;
-            document.body.appendChild(link);
             link.click();
-            document.body.removeChild(link);
-
-        } catch (error) {
-            console.error(error);
-            alert("حدث خطأ أثناء معالجة الملف، ربما الملف التفصيلي تالف أو الطالب غير موجود.");
-        } finally {
-            btnElement.disabled = false;
-            btnElement.classList.remove('loading');
-            btnElement.innerText = "📥 تنزيل كشف النقاط";
-            msg.style.display = 'none';
-        }
+        } catch (error) { alert("حدث خطأ في معالجة الملف."); }
+        finally { btnElement.disabled = false; btnElement.innerText = "📥 تنزيل كشف النقاط"; }
     }
 </script>
-
-<!-- START PROTECTION CODE -->
-<script>
-    (function() {
-        document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-        document.onkeydown = function(e) {
-            if(e.keyCode == 123) return false;
-            if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0))) return false;
-            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
-        }
-    })();
-</script>
-<!-- END PROTECTION CODE -->
-
 </body>
 </html>
