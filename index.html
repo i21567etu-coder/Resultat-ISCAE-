@@ -12,6 +12,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2232/2232688.png">
 
+    <!-- Confetti library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
+
     <!-- مكتبات المعالجة -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
@@ -22,7 +25,7 @@
     <style>
         :root { 
             --primary: #005C29;
-            --secondary: #2563eb; /* تم تغيير الذهبي إلى الأزرق */
+            --secondary: #2563eb;
             --bg-gradient: linear-gradient(135deg, #f0fdf4 0%, #e6f7ed 100%);
             --text: #1a2e1a;
             --radius: 15px;
@@ -83,7 +86,7 @@
         }
         
         .btn-search { background: var(--primary); color: white; font-size: 1.1rem; }
-        .btn-top20 { background: var(--secondary); color: #ffffff; } /* اللون الجديد للزر */
+        .btn-top20 { background: var(--secondary); color: #ffffff; }
         button:hover { transform: translateY(-2px); opacity: 0.95; }
 
         #results-container {
@@ -98,6 +101,7 @@
             animation: slideUp 0.5s ease;
             border-top: 6px solid var(--primary); text-align: right;
             position: relative;
+            scroll-margin-top: 20px;
         }
 
         .semester-badge {
@@ -161,22 +165,44 @@
         .file-input-wrapper { margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px dashed #cbd5e1; }
         
         #celebration-msg {
-            display: none; position: relative; text-align: center;
-            background: linear-gradient(135deg, #f0f9ff, #fff);
-            padding: 25px; border-radius: 15px; margin-bottom: 20px;
-            border: 2px solid #bae6fd; overflow: hidden; 
-            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.1);
-        }
-        .congrats-text {
-            display: block; color: var(--secondary); font-size: 1.8rem;
-            font-weight: 900; text-shadow: 1px 1px 0 #fff;
-            position: relative; z-index: 10;
-            animation: bounceIn 1s infinite alternate;
+            display: none;
+            text-align: center;
+            background: #ffffff; 
+            padding: 30px 20px;
+            border-radius: 20px; 
+            margin-bottom: 30px;
+            border: 4px solid #cce0ff; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.03); 
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            scroll-margin-top: 20px;
         }
 
-        @keyframes bounceIn { from { transform: scale(1); } to { transform: scale(1.05); } }
+        .celebration-content .big-message {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: #1952c2; 
+            text-shadow: none; 
+            letter-spacing: 0;
+            margin: 0;
+            line-height: 1.4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px; 
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @media (max-width: 600px) { .btn-group { flex-direction: column; } .info-row { font-size: 1rem; } }
+        
+        @media (max-width: 600px) { 
+            .btn-group { flex-direction: column; } 
+            .info-row { font-size: 1rem; } 
+            .celebration-content .big-message { font-size: 2rem; gap: 10px; }
+        }
 
     </style>
 </head>
@@ -278,13 +304,16 @@
         <div id="error-msg" class="error"></div>
     </div>
 
+    <!-- قسم الاحتفال المحدث -->
     <div id="celebration-msg">
-        <span class="congrats-text">🎉 ألف مبروك النجاح 🎉</span>
+        <div class="celebration-content">
+            <div class="big-message"><span>🎉</span> ألف مبروك النجاح <span>🎉</span></div>
+        </div>
     </div>
 
     <div id="results-container"></div>
 
-    <div id="top20-container" class="result-card">
+    <div id="top20-container" class="result-card" style="scroll-margin-top: 20px;">
         <h2 style="color:var(--primary); text-align:center;">🏆 قائمة العشرون الأوائل</h2>
         <p id="top20-info" style="text-align:center; color:#666; direction:ltr; font-weight:bold;"></p>
         <div style="overflow-x:auto;">
@@ -411,6 +440,59 @@
         document.getElementById('celebration-msg').style.display = 'none';
     }
 
+    async function searchStudentInPDF(file, targetId) {
+        try {
+            const loadingTask = pdfjsLib.getDocument(file.ranking_url);
+            const pdf = await loadingTask.promise;
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                
+                const pageText = textContent.items.map(t => t.str).join('').replace(/\s+/g, '').toUpperCase();
+                if (!pageText.includes(targetId)) continue;
+
+                let rows =[];
+                textContent.items.forEach(item => {
+                    const y = item.transform[5];
+                    const str = item.str;
+                    const x = item.transform[4];
+                    let foundRow = rows.find(r => Math.abs(r.y - y) < 5);
+                    if (foundRow) foundRow.items.push({ str, x });
+                    else rows.push({ y, items: [{ str, x }] });
+                });
+                
+                rows.sort((a, b) => b.y - a.y);
+                for (let row of rows) {
+                    const lineItems = row.items.sort((a, b) => a.x - b.x);
+                    const lineStr = lineItems.map(t => t.str).join(" ").trim();
+                    let match = lineStr.match(/^(\d+)\s+(I\s*\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(\d{1,2})\s+(.+)$/i);
+                    let hasCredit = true;
+                    if (!match) { match = lineStr.match(/^(\d+)\s+(I\s*\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(.+)$/i); hasCredit = false; }
+                    
+                    if (match) {
+                        const id = match[2].replace(/\s+/g, '').toUpperCase();
+                        if (id === targetId) {
+                            return {
+                                file: file,
+                                student: {
+                                    rank: parseInt(match[1]),
+                                    id: id,
+                                    name: match[3].trim(),
+                                    avg: match[4].replace(',', '.'),
+                                    credit: hasCredit ? match[5] : null,
+                                    decision: hasCredit ? match[6].trim() : match[5].trim()
+                                }
+                            };
+                        }
+                    }
+                }
+            }
+            return null;
+        } catch(e) { 
+            return null; 
+        }
+    }
+
     async function fetchRankingData(pdfUrl) {
         try {
             const loadingTask = pdfjsLib.getDocument(pdfUrl);
@@ -457,33 +539,102 @@
         resetView();
         const loader = document.getElementById('loader');
         loader.style.display = 'block';
+        
         try {
             const { data: files, error } = await _supabase.from('results_metadata').select('*').order('created_at', { ascending: false });
             if (error) throw error;
-            let foundResults =[];
+            
             const cleanInput = matricule.replace(/\s+/g, '');
-            for (let file of files) {
-                const students = await fetchRankingData(file.ranking_url);
-                if (students) {
-                    const student = students.find(s => s.id === cleanInput);
-                    if (student) foundResults.push({ student, file });
+            
+            const searchPromises = files.map(file => searchStudentInPDF(file, cleanInput));
+            const rawResults = await Promise.all(searchPromises);
+            
+            let foundResults = rawResults.filter(res => res !== null);
+            
+            // ترتيب النتائج: السنة الأحدث أولاً، ثم الفصل الدراسي الأحدث أولاً
+            foundResults.sort((a, b) => {
+                // ترتيب حسب السنة الجامعية تنازلياً (مثلاً: 2024-2025 قبل 2023-2024)
+                if (a.file.academic_year !== b.file.academic_year) {
+                    return a.file.academic_year > b.file.academic_year ? -1 : 1;
                 }
-            }
+                // إذا كانت نفس السنة، يتم الترتيب حسب الفصل تنازلياً (مثلاً: S6 قبل S5)
+                if (a.file.semester !== b.file.semester) {
+                    return a.file.semester > b.file.semester ? -1 : 1;
+                }
+                return 0;
+            });
+
             loader.style.display = 'none';
-            if (foundResults.length > 0) displayResults(foundResults);
-            else showError("لم يتم العثور على نتائج.");
-        } catch (err) { loader.style.display = 'none'; showError("خطأ في الاتصال."); }
+            
+            if (foundResults.length > 0) {
+                displayResults(foundResults);
+                
+                const anyValid = foundResults.some(r => 
+                    r.student.decision.toLowerCase().includes('valid') || 
+                    r.student.decision.toLowerCase().includes('admis')
+                );
+                
+                if (anyValid) {
+                    launchConfetti();
+                    
+                    setTimeout(() => {
+                        document.getElementById('celebration-msg').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
+
+                    setTimeout(() => {
+                        const firstCard = document.querySelector('.result-card');
+                        if (firstCard) {
+                            firstCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }, 3500);
+
+                } else {
+                    setTimeout(() => {
+                        const firstCard = document.querySelector('.result-card');
+                        if (firstCard) {
+                            firstCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }, 200);
+                }
+            } else { 
+                showError("لم يتم العثور على نتائج."); 
+            }
+        } catch (err) { 
+            loader.style.display = 'none'; 
+            showError("خطأ في الاتصال."); 
+        }
+    }
+
+    function launchConfetti() {
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            startVelocity: 25,
+            colors:['#fbbf24', '#ef4444', '#3b82f6', '#10b981', '#f97316']
+        });
+        setTimeout(() => {
+            confetti({
+                particleCount: 100,
+                spread: 100,
+                origin: { y: 0.5, x: 0.3 },
+                startVelocity: 30,
+                colors:['#fde047', '#dc2626', '#2563eb', '#059669']
+            });
+        }, 250);
     }
 
     function displayResults(results) {
         const container = document.getElementById('results-container');
+        let anyValid = false;
         results.forEach(res => {
             const s = res.student; const f = res.file;
             const isValid = s.decision.toLowerCase().includes('valid') || s.decision.toLowerCase().includes('admis');
+            if (isValid) anyValid = true;
             const card = document.createElement('div');
             card.className = 'result-card'; card.style.display = 'block';
             card.innerHTML = `
-                <div class="semester-badge">${f.major} | ${f.level} - ${f.semester}</div>
+                <div class="semester-badge">${f.academic_year} | ${f.major} - ${f.semester}</div>
                 <div class="student-info" style="margin-top:15px;">
                     <h2>${s.name}</h2>
                     <div class="info-row"><span>رقم التسجيل:</span> <span class="info-val">${s.id}</span></div>
@@ -494,8 +645,10 @@
                 <button class="download-btn" onclick="downloadPrecisePDF('${s.id}', '${f.details_url}', this)">📥 تنزيل كشف النقاط</button>
             `;
             container.appendChild(card);
-            if (isValid) document.getElementById('celebration-msg').style.display = 'block';
         });
+        if (anyValid) {
+            document.getElementById('celebration-msg').style.display = 'block';
+        }
     }
 
     function showError(msg) {
@@ -524,6 +677,11 @@
                 tbody.innerHTML += `<tr><td>${s.rank}</td><td><a onclick="triggerQuickSearch('${s.id}')" class="clickable-id">${s.id}</a></td><td>${s.name}</td><td>${s.avg}</td></tr>`;
             });
             document.getElementById('top20-container').style.display = 'block';
+            
+            setTimeout(() => {
+                document.getElementById('top20-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 200);
+
         } catch (e) { loader.style.display = 'none'; }
     }
 
@@ -546,11 +704,10 @@
                     if (items[j].str.replace(/\s+/g, '').includes(studentId)) {
                         startPage = i - 1;
                         startY = items[j].transform[5];
-                        // البحث عن الطالب التالي في نفس الصفحة لضبط نهاية القص
                         let nextStudents = items.filter(itm => itm.str.replace(/\s+/g, '').match(/I\d{4,}/) && itm.transform[5] < startY - 10);
                         if (nextStudents.length > 0) {
                             nextStudents.sort((a, b) => b.transform[5] - a.transform[5]);
-                            endY = nextStudents[0].transform[5] + 5; // ترك مساحة بسيطة جداً
+                            endY = nextStudents[0].transform[5] + 5; 
                         } else {
                             endY = 20; 
                             if (i < pdfDocjs.numPages) {
@@ -573,17 +730,16 @@
             const { PDFDocument } = PDFLib;
             const pdfDoc = await PDFDocument.load(existingPdfBytes);
             const newPdf = await PDFDocument.create();
-            const [page1] = await newPdf.copyPages(pdfDoc,[startPage]);
+            const[page1] = await newPdf.copyPages(pdfDoc,[startPage]);
             const { width, height } = page1.getSize();
             
-            // تعديل الهوامش لتكون ضيقة جداً (Precision Crop)
             const cropTop = Math.min(height, startY + 35); 
             const cropBottom = spansToNextPage ? 0 : endY; 
             page1.setCropBox(0, cropBottom, width, cropTop - cropBottom);
             newPdf.addPage(page1);
 
             if (spansToNextPage) {
-                const [page2] = await newPdf.copyPages(pdfDoc,[startPage + 1]);
+                const[page2] = await newPdf.copyPages(pdfDoc,[startPage + 1]);
                 page2.setCropBox(0, nextPageEndY, width, height - nextPageEndY);
                 newPdf.addPage(page2);
             }
