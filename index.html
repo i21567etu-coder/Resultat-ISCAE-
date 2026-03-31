@@ -519,7 +519,9 @@
         const studentDecision = originalCard.querySelectorAll('.info-val')[3].innerText;
         const semesterText = originalCard.querySelector('.semester-badge').innerText;
         const isValid = studentDecision.toLowerCase().includes('valid') || studentDecision.toLowerCase().includes('admis');
-        const siteUrl = window.location.href.split('?')[0];
+        const urlParams = new URLSearchParams(window.location.search);
+const parentUrl = urlParams.get('parent');
+const siteUrl = parentUrl ? parentUrl : window.location.href.split('?')[0];
 
         // إنشاء لوحة تصوير خفية بتصميم مثالي ومركزي
         const wrapper = document.createElement('div');
