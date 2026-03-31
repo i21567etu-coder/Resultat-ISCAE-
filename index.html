@@ -97,10 +97,16 @@
             font-weight: bold; border: 1px solid #bbf7d0; direction: ltr; 
             margin-bottom: 12px;
         }
+        /* تعديل لعرض الاسم كاملاً والسماح له بالنزول لسطر جديد إذا كان طويلاً */
         .student-name { 
-            color: var(--primary); margin: 0; font-size: 1.6rem; 
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+            color: var(--primary); 
+            margin: 0; 
+            font-size: 1.6rem; 
             width: 100%;
+            direction: ltr;
+            line-height: 1.4;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .info-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.1rem; color: var(--text); }
@@ -504,7 +510,7 @@
         try { cheerSound.pause(); cheerSound.currentTime = 0; } catch (e) {}
     }
 
-    // --- دالة مشاركة النتيجة مع التصميم المتجاوب الجديد ---
+    // --- دالة مشاركة النتيجة مع التصميم المتجاوب الجديد وإصلاحات الاسم والرابط ---
     async function shareResultCard(cardId, semesterRaw, btnElement) {
         const originalCard = document.getElementById(cardId);
         const originalText = btnElement.innerHTML;
@@ -519,11 +525,15 @@
         const studentDecision = originalCard.querySelectorAll('.info-val')[3].innerText;
         const semesterText = originalCard.querySelector('.semester-badge').innerText;
         const isValid = studentDecision.toLowerCase().includes('valid') || studentDecision.toLowerCase().includes('admis');
-        const urlParams = new URLSearchParams(window.location.search);
-const parentUrl = urlParams.get('parent');
-const siteUrl = parentUrl ? parentUrl : window.location.href.split('?')[0];
+        
+        // --- تحديد رابط المنصة الصحيح ---
+        let siteUrl = window.location.href.split('?')[0];
+        if (window.self !== window.top) {
+            // إذا كان الموقع معروضاً داخل iframe (مثل منصة الاتحاد)
+            siteUrl = "https://unem-iscae.vercel.app/";
+        }
 
-        // إنشاء لوحة تصوير خفية بتصميم مثالي ومركزي
+        // إنشاء لوحة تصوير خفية بتصميم مثالي ومركزي وتعديل نزول الاسم لسطر جديد
         const wrapper = document.createElement('div');
         wrapper.style.cssText = `
             position: absolute; left: -9999px; top: 0;
@@ -549,7 +559,8 @@ const siteUrl = parentUrl ? parentUrl : window.location.href.split('?')[0];
                     <div style="display: inline-block; background: #f0fdf4; color: #005C29; padding: 8px 20px; border-radius: 25px; font-size: 16px; font-weight: bold; border: 1px solid #bbf7d0; direction: ltr; margin-bottom: 15px;">
                         ${semesterText}
                     </div>
-                    <h2 style="color: #005C29; margin: 0; font-size: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">
+                    <!-- تم تعديل كود الاسم للسماح له بالنزول لسطر جديد بدلاً من القص -->
+                    <h2 style="color: #005C29; margin: 0; font-size: 24px; width: 100%; direction: ltr; line-height: 1.4; word-wrap: break-word; overflow-wrap: break-word;">
                         ${studentName}
                     </h2>
                 </div>
@@ -623,7 +634,6 @@ const siteUrl = parentUrl ? parentUrl : window.location.href.split('?')[0];
                 shareBtnHtml = `<button class="share-btn" onclick="shareResultCard('${cardId}', '${f.semester}', this)"><i class="fas fa-share-alt"></i> مشاركة النتيجة</button>`;
             }
 
-            // تعديل تصميم البطاقة المعروضة في الموقع لتكون متطابقة مع الصورة
             card.innerHTML = `
                 <div class="card-header-custom">
                     <div class="semester-badge">${f.academic_year} | ${f.major} - ${f.semester}</div>
