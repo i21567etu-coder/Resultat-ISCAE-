@@ -83,7 +83,6 @@
             position: relative; scroll-margin-top: 20px; transition: all 0.3s ease;
         }
 
-        /* تنسيق جديد للرأس (الفصل والاسم) ليكون في المنتصف وفي سطر واحد */
         .card-header-custom {
             text-align: center;
             border-bottom: 2px solid #eee;
@@ -97,7 +96,6 @@
             font-weight: bold; border: 1px solid #bbf7d0; direction: ltr; 
             margin-bottom: 12px;
         }
-        /* تعديل لعرض الاسم كاملاً والسماح له بالنزول لسطر جديد إذا كان طويلاً */
         .student-name { 
             color: var(--primary); 
             margin: 0; 
@@ -178,7 +176,7 @@
             <p id="login-error" style="color:red; display:none; margin-top:10px;">الرمز غير صحيح!</p>
         </div>
         <div id="admin-upload-step" style="display:none;">
-            <h2>📤 رفع النتائج</h2>
+            <h2>📤 رفع النتائج (تلقائي الترتيب)</h2>
             <div class="form-group"><label>السنة الجامعية:</label><select id="up-year"></select></div>
             <div class="form-group">
                 <label>التخصص:</label>
@@ -196,9 +194,10 @@
                 <select id="up-level" onchange="updateUploadSemesters()"><option value="L1">Licence 1 (L1)</option><option value="L2">Licence 2 (L2)</option><option value="L3">Licence 3 (L3)</option></select>
             </div>
             <div class="form-group"><label>الفصل:</label><select id="up-semester"></select></div>
-            <div class="file-input-wrapper"><label>📄 ملف النتائج التفصيلي:</label><input type="file" id="file-details" accept="application/pdf"></div>
-            <div class="file-input-wrapper"><label>🏆 ملف الترتيب:</label><input type="file" id="file-ranking" accept="application/pdf"></div>
-            <button class="admin-btn" style="margin-top:20px; background:var(--primary); color:white;" onclick="uploadFiles()">رفع البيانات</button>
+            <!-- تم إزالة ملف الترتيب، الإدارة ترفع الملف التفصيلي فقط -->
+            <div class="file-input-wrapper"><label>📄 ملف النتائج التفصيلي (PDF):</label><input type="file" id="file-details" accept="application/pdf"></div>
+            
+            <button class="admin-btn" style="margin-top:20px; background:var(--primary); color:white;" onclick="uploadFiles()">استخراج البيانات والرفع</button>
             <div id="upload-status" style="margin-top:15px; font-weight:bold; font-size:0.9rem; text-align:center;"></div>
         </div>
     </div>
@@ -257,7 +256,7 @@
     const ADMIN_PASS = "I21567@MDA"; 
     
     let globalFilesCache = null; 
-    const pdfTextCache = {}; 
+    let rankingDataCache = {}; 
 
     const popSound = new Audio('https://actions.google.com/sounds/v1/cartoon/pop.ogg');
     const cheerSound = new Audio('https://actions.google.com/sounds/v1/crowds/crowd_cheer.ogg');
@@ -319,29 +318,106 @@
         }
     }
 
+    // ===== دالة الرفع والترتيب الذكي (تم دمج منطق موقع Classement هنا) =====
     async function uploadFiles() {
         const statusDiv = document.getElementById('upload-status');
-        const academicYear = document.getElementById('up-year').value; const major = document.getElementById('up-major').value;
-        const level = document.getElementById('up-level').value; const semester = document.getElementById('up-semester').value;
-        const fileDetails = document.getElementById('file-details').files[0]; const fileRanking = document.getElementById('file-ranking').files[0];
+        const academicYear = document.getElementById('up-year').value; 
+        const major = document.getElementById('up-major').value;
+        const level = document.getElementById('up-level').value; 
+        const semester = document.getElementById('up-semester').value;
+        const fileDetails = document.getElementById('file-details').files[0]; 
 
-        if (!fileDetails || !fileRanking) { statusDiv.innerHTML = '<span style="color:red">يرجى اختيار الملفين.</span>'; return; }
+        if (!fileDetails) { statusDiv.innerHTML = '<span style="color:red">يرجى اختيار ملف النتائج التفصيلي أولاً.</span>'; return; }
 
-        statusDiv.innerHTML = '⏳ جاري الرفع...';
+        statusDiv.innerHTML = '⏳ جاري استخراج البيانات والترتيب بذكاء...';
+        
         try {
-            const upload = async (file, prefix) => {
-                const fileName = `${prefix}_${major}_${level}_${semester}_${Date.now()}.pdf`;
-                const { error } = await _supabase.storage.from('isc_results').upload(fileName, file);
+            // 1. قراءة الملف واستخراج البيانات
+            const arrayBuffer = await fileDetails.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+            let fullText = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                fullText += textContent.items.map(item => item.str).join(" ") + " ";
+            }
+            
+            fullText = fullText.replace(/\s+/g, " ");
+            
+            // خوارزمية البحث المتقدمة عن الكتل
+            const segments = fullText.split(/(?=I\s*\d{4,6}\s)/i);
+            let studentsMap = new Map();
+
+            segments.forEach(segment => {
+                if (segment.trim().match(/^I\s*\d{4,6}/i)) {
+                    const idMatch = segment.match(/^(I\s*\d{4,6})/i);
+                    if (!idMatch) return;
+                    const id = idMatch[1].replace(/\s+/g, '').toUpperCase();
+
+                    const decisionRegex = /(\d{1,2}[.,]\d{1,2})\s+(Validé|Rattrapage|Ajourné|Session|Admis)/i;
+                    const decMatch = segment.match(decisionRegex);
+
+                    if (decMatch) {
+                        let avgStr = decMatch[1].replace(',', '.');
+                        let decision = decMatch[2].trim();
+                        let avg = parseFloat(avgStr);
+
+                        if (avg <= 20.00) {
+                            const avgIndex = decMatch.index;
+                            let rawNameSection = segment.substring(idMatch[1].length, avgIndex).trim();
+                            let cleanName = rawNameSection.replace(/^\d+\s+/, "").trim();
+                            cleanName = cleanName.replace(/Modul.*$/i, "").trim();
+
+                            if (!studentsMap.has(id)) {
+                                studentsMap.set(id, { id, name: cleanName, avg: avgStr, avgNum: avg, decision });
+                            }
+                        }
+                    }
+                }
+            });
+
+            let studentsArray = Array.from(studentsMap.values());
+            if(studentsArray.length === 0) {
+                statusDiv.innerHTML = '<span style="color:red">❌ لم يتم العثور على أي طالب. يرجى التأكد من أن الملف هو كشف النقاط التفصيلي الصحيح.</span>';
+                return;
+            }
+
+            // ترتيب الطلاب حسب المعدل وإعطاء الرتبة
+            studentsArray.sort((a, b) => b.avgNum - a.avgNum);
+            studentsArray.forEach((student, index) => { student.rank = index + 1; });
+
+            statusDiv.innerHTML = '⏳ جاري رفع الملفات إلى الخادم...';
+
+            const uploadToStorage = async (fileData, fileName) => {
+                const { error } = await _supabase.storage.from('isc_results').upload(fileName, fileData);
                 if (error) throw error;
-                const { data } = _supabase.storage.from('isc_results').getPublicUrl(fileName); return data.publicUrl;
+                const { data } = _supabase.storage.from('isc_results').getPublicUrl(fileName); 
+                return data.publicUrl;
             };
-            const detailsUrl = await upload(fileDetails, 'DETAILS'); const rankingUrl = await upload(fileRanking, 'RANKING');
-            const { error: dbError } = await _supabase.from('results_metadata').insert([{ academic_year: academicYear, major, level, semester, details_url: detailsUrl, ranking_url: rankingUrl }]);
+
+            // رفع الملف التفصيلي
+            const detailsFileName = `DETAILS_${major}_${level}_${semester}_${Date.now()}.pdf`;
+            const detailsUrl = await uploadToStorage(fileDetails, detailsFileName);
+
+            // إنشاء ملف JSON خفيف جداً يحتوي على الترتيب لسرعة البحث في الموقع
+            const jsonBlob = new Blob([JSON.stringify(studentsArray)], { type: 'application/json' });
+            const jsonFileName = `RANKING_${major}_${level}_${semester}_${Date.now()}.json`;
+            const rankingUrl = await uploadToStorage(jsonBlob, jsonFileName);
+
+            // حفظ الروابط في قاعدة البيانات
+            const { error: dbError } = await _supabase.from('results_metadata').insert([{ 
+                academic_year: academicYear, major, level, semester, 
+                details_url: detailsUrl, ranking_url: rankingUrl 
+            }]);
+            
             if (dbError) throw dbError;
             
             globalFilesCache = null; 
-            statusDiv.innerHTML = '<span style="color:green">✅ تم الرفع بنجاح!</span>';
-        } catch (err) { statusDiv.innerHTML = '<span style="color:red">❌ خطأ: ' + err.message + '</span>'; }
+            statusDiv.innerHTML = `<span style="color:green">✅ تم الاستخراج والرفع بنجاح! (${studentsArray.length} طالب)</span>`;
+        } catch (err) { 
+            statusDiv.innerHTML = '<span style="color:red">❌ خطأ: ' + err.message + '</span>'; 
+            console.error(err);
+        }
     }
 
     function resetView() {
@@ -349,82 +425,68 @@
         document.getElementById('error-msg').style.display = 'none'; closeCelebration();
     }
 
-    async function searchStudentInPDF(file, targetId) {
-        const cacheKey = file.ranking_url;
-        if (!pdfTextCache[cacheKey]) {
-            try {
-                const loadingTask = pdfjsLib.getDocument(file.ranking_url); const pdf = await loadingTask.promise;
-                const pagesData = [];
+    // ===== دالة جلب الترتيب تدعم الملفات القديمة (PDF) والجديدة الخفيفة (JSON) =====
+    async function fetchRankingData(url) {
+        if (rankingDataCache[url]) return rankingDataCache[url];
+
+        try {
+            // إذا كان الملف الجديد بصيغة JSON (فائق السرعة)
+            if (url.endsWith('.json')) {
+                const response = await fetch(url);
+                const data = await response.json();
+                rankingDataCache[url] = data;
+                return data;
+            } 
+            // إذا كان الملف من الرفوعات القديمة (PDF) يتم تحليله كما في السابق
+            else {
+                const loadingTask = pdfjsLib.getDocument(url); 
+                const pdf = await loadingTask.promise;
+                let students = [];
                 for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i); const textContent = await page.getTextContent();
-                    const pageText = textContent.items.map(t => t.str).join('').replace(/\s+/g, '').toUpperCase();
-                    pagesData.push({ textContent, pageText });
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    
+                    let rows = []; 
+                    textContent.items.forEach(item => {
+                        const y = item.transform[5]; const str = item.str; const x = item.transform[4];
+                        let foundRow = rows.find(r => Math.abs(r.y - y) < 5);
+                        if (foundRow) foundRow.items.push({ str, x }); else rows.push({ y, items:[{ str, x }] });
+                    });
+                    rows.sort((a, b) => b.y - a.y);
+                    rows.forEach(row => {
+                        const lineItems = row.items.sort((a, b) => a.x - b.x); const lineStr = lineItems.map(t => t.str).join(" ").trim();
+                        let match = lineStr.match(/^(\d+)\s+(I\s*\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(\d{1,2})\s+(.+)$/i);
+                        let hasCredit = true;
+                        if (!match) { match = lineStr.match(/^(\d+)\s+(I\s*\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(.+)$/i); hasCredit = false; }
+                        if(match) { 
+                            students.push({ 
+                                rank: parseInt(match[1]), 
+                                id: match[2].replace(/\s+/g, '').toUpperCase(), 
+                                name: match[3].trim(), 
+                                avg: match[4].replace(',', '.'), 
+                                decision: hasCredit ? match[6].trim() : match[5].trim() 
+                            }); 
+                        }
+                    });
                 }
-                pdfTextCache[cacheKey] = pagesData;
-            } catch(e) { return null; }
-        }
-
-        const pagesData = pdfTextCache[cacheKey];
-        for (let pageData of pagesData) {
-            if (!pageData.pageText.includes(targetId)) continue;
-
-            let rows =[];
-            pageData.textContent.items.forEach(item => {
-                const y = item.transform[5]; const str = item.str; const x = item.transform[4];
-                let foundRow = rows.find(r => Math.abs(r.y - y) < 5);
-                if (foundRow) foundRow.items.push({ str, x }); else rows.push({ y, items: [{ str, x }] });
-            });
-            
-            rows.sort((a, b) => b.y - a.y);
-            for (let row of rows) {
-                const lineItems = row.items.sort((a, b) => a.x - b.x); const lineStr = lineItems.map(t => t.str).join(" ").trim();
-                let match = lineStr.match(/^(\d+)\s+(I\s*\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(\d{1,2})\s+(.+)$/i);
-                let hasCredit = true;
-                if (!match) { match = lineStr.match(/^(\d+)\s+(I\s*\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(.+)$/i); hasCredit = false; }
-                
-                if (match) {
-                    const id = match[2].replace(/\s+/g, '').toUpperCase();
-                    if (id === targetId) {
-                        return { file: file, student: { rank: parseInt(match[1]), id: id, name: match[3].trim(), avg: match[4].replace(',', '.'), credit: hasCredit ? match[5] : null, decision: hasCredit ? match[6].trim() : match[5].trim() } };
-                    }
-                }
+                rankingDataCache[url] = students;
+                return students;
             }
+        } catch(e) {
+            console.error(e);
+            return null;
         }
-        return null;
     }
 
-    async function fetchRankingData(pdfUrl) {
-        const cacheKey = pdfUrl;
-        if (!pdfTextCache[cacheKey]) {
-            try {
-                const loadingTask = pdfjsLib.getDocument(pdfUrl); const pdf = await loadingTask.promise;
-                const pagesData = [];
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i); const textContent = await page.getTextContent();
-                    const pageText = textContent.items.map(t => t.str).join('').replace(/\s+/g, '').toUpperCase(); pagesData.push({ textContent, pageText });
-                }
-                pdfTextCache[cacheKey] = pagesData;
-            } catch(e) { return null; }
-        }
+    async function searchStudentInPDF(file, targetId) {
+        const students = await fetchRankingData(file.ranking_url);
+        if (!students) return null;
 
-        const pagesData = pdfTextCache[cacheKey]; let students =[];
-        pagesData.forEach(pageData => {
-            let rows =[]; 
-            pageData.textContent.items.forEach(item => {
-                const y = item.transform[5]; const str = item.str; const x = item.transform[4];
-                let foundRow = rows.find(r => Math.abs(r.y - y) < 5);
-                if (foundRow) foundRow.items.push({ str, x }); else rows.push({ y, items:[{ str, x }] });
-            });
-            rows.sort((a, b) => b.y - a.y);
-            rows.forEach(row => {
-                const lineItems = row.items.sort((a, b) => a.x - b.x); const lineStr = lineItems.map(t => t.str).join(" ").trim();
-                let match = lineStr.match(/^(\d+)\s+(I\s*\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(\d{1,2})\s+(.+)$/i);
-                let hasCredit = true;
-                if (!match) { match = lineStr.match(/^(\d+)\s+(I\s*\d+)\s+(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(.+)$/i); hasCredit = false; }
-                if(match) { students.push({ rank: parseInt(match[1]), id: match[2].replace(/\s+/g, '').toUpperCase(), name: match[3].trim(), avg: match[4].replace(',', '.'), credit: hasCredit ? match[5] : null, decision: hasCredit ? match[6].trim() : match[5].trim() }); }
-            });
-        });
-        return students;
+        const student = students.find(s => s.id === targetId);
+        if (student) {
+            return { file: file, student: student };
+        }
+        return null;
     }
 
     async function searchAllSemesters() {
@@ -469,7 +531,7 @@
                     setTimeout(() => { const firstCard = document.querySelector('.result-card'); if (firstCard) firstCard.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200);
                 }
             } else { showError("لم يتم العثور على نتائج."); }
-        } catch (err) { loader.style.display = 'none'; showError("خطأ في الاتصال."); }
+        } catch (err) { loader.style.display = 'none'; showError("خطأ في الاتصال."); console.error(err); }
     }
 
     function createConfettiPiece() {
@@ -510,14 +572,12 @@
         try { cheerSound.pause(); cheerSound.currentTime = 0; } catch (e) {}
     }
 
-    // --- دالة مشاركة النتيجة مع التصميم المتجاوب الجديد وإصلاحات الاسم والرابط ---
     async function shareResultCard(cardId, semesterRaw, btnElement) {
         const originalCard = document.getElementById(cardId);
         const originalText = btnElement.innerHTML;
         btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التجهيز...';
         btnElement.disabled = true;
 
-        // استخراج البيانات
         const studentName = originalCard.querySelector('h2').innerText;
         const studentId = originalCard.querySelectorAll('.info-val')[0].innerText;
         const studentAvg = originalCard.querySelectorAll('.info-val')[1].innerText;
@@ -526,24 +586,15 @@
         const semesterText = originalCard.querySelector('.semester-badge').innerText;
         const isValid = studentDecision.toLowerCase().includes('valid') || studentDecision.toLowerCase().includes('admis');
         
-        // --- تحديد رابط المنصة الصحيح ---
         let siteUrl = window.location.href.split('?')[0];
-        if (window.self !== window.top) {
-            // إذا كان الموقع معروضاً داخل iframe (مثل منصة الاتحاد)
-            siteUrl = "https://unem-iscae.vercel.app/";
-        }
+        if (window.self !== window.top) { siteUrl = "https://unem-iscae.vercel.app/"; }
 
-        // إنشاء لوحة تصوير خفية بتصميم مثالي ومركزي وتعديل نزول الاسم لسطر جديد
         const wrapper = document.createElement('div');
         wrapper.style.cssText = `
-            position: absolute; left: -9999px; top: 0;
-            width: 500px;
-            padding: 40px 25px;
+            position: absolute; left: -9999px; top: 0; width: 500px; padding: 40px 25px;
             background: linear-gradient(135deg, #005C29 0%, #10b981 100%);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            direction: rtl;
-            box-sizing: border-box;
-            border-radius: 20px;
+            direction: rtl; box-sizing: border-box; border-radius: 20px;
         `;
 
         wrapper.innerHTML = `
@@ -559,27 +610,22 @@
                     <div style="display: inline-block; background: #f0fdf4; color: #005C29; padding: 8px 20px; border-radius: 25px; font-size: 16px; font-weight: bold; border: 1px solid #bbf7d0; direction: ltr; margin-bottom: 15px;">
                         ${semesterText}
                     </div>
-                    <!-- تم تعديل كود الاسم للسماح له بالنزول لسطر جديد بدلاً من القص -->
                     <h2 style="color: #005C29; margin: 0; font-size: 24px; width: 100%; direction: ltr; line-height: 1.4; word-wrap: break-word; overflow-wrap: break-word;">
                         ${studentName}
                     </h2>
                 </div>
                 
                 <div style="display: flex; justify-content: space-between; margin-bottom: 18px; font-size: 20px; color: #333;">
-                    <span>رقم التسجيل:</span>
-                    <span style="font-weight: bold; color: #000;">${studentId}</span>
+                    <span>رقم التسجيل:</span><span style="font-weight: bold; color: #000;">${studentId}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 18px; font-size: 20px; color: #333;">
-                    <span>المعدل:</span>
-                    <span style="font-weight: bold; color: #005C29;">${studentAvg}</span>
+                    <span>المعدل:</span><span style="font-weight: bold; color: #005C29;">${studentAvg}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 18px; font-size: 20px; color: #333;">
-                    <span>الترتيب:</span>
-                    <span style="font-weight: bold; color: #2563eb;">${studentRank}</span>
+                    <span>الترتيب:</span><span style="font-weight: bold; color: #2563eb;">${studentRank}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 20px; color: #333; align-items: center;">
-                    <span>القرار:</span>
-                    <span style="font-weight: bold; color: #ffffff; background: ${isValid ? '#2563eb' : '#dc2626'}; padding: 5px 20px; border-radius: 8px;">${studentDecision}</span>
+                    <span>القرار:</span><span style="font-weight: bold; color: #ffffff; background: ${isValid ? '#2563eb' : '#dc2626'}; padding: 5px 20px; border-radius: 8px;">${studentDecision}</span>
                 </div>
             </div>
             
@@ -594,7 +640,7 @@
 
         try {
             const canvas = await html2canvas(wrapper, { scale: 2, backgroundColor: null, useCORS: true });
-            wrapper.remove(); // مسح اللوحة الخفية بعد التقاط الصورة
+            wrapper.remove(); 
 
             canvas.toBlob(async (blob) => {
                 const file = new File([blob], "ISCAE_Result.png", { type: "image/png" });
@@ -661,16 +707,23 @@
         const loader = document.getElementById('loader'); loader.style.display = 'block';
         try {
             const { data } = await _supabase.from('results_metadata').select('*').eq('academic_year', document.getElementById('t20-year').value).eq('major', document.getElementById('t20-major').value).eq('level', document.getElementById('t20-level').value).eq('semester', document.getElementById('t20-semester').value).limit(1);
-            if (!data[0]) { loader.style.display = 'none'; showError("لا توجد بيانات."); return; }
+            if (!data[0]) { loader.style.display = 'none'; showError("لا توجد بيانات متاحة لهذا الفصل."); return; }
             
             const students = await fetchRankingData(data[0].ranking_url);
             loader.style.display = 'none';
+            
+            if (!students || students.length === 0) {
+                showError("تعذر قراءة بيانات هذا الفصل."); return;
+            }
+
             const top20 = students.sort((a,b)=>a.rank-b.rank).slice(0, 20);
             const tbody = document.getElementById('top20-body'); tbody.innerHTML = '';
             top20.forEach(s => { tbody.innerHTML += `<tr><td>${s.rank}</td><td><a onclick="triggerQuickSearch('${s.id}')" class="clickable-id">${s.id}</a></td><td>${s.name}</td><td>${s.avg}</td></tr>`; });
+            
+            document.getElementById('top20-info').innerText = `${data[0].academic_year} | ${data[0].major} - ${data[0].semester}`;
             document.getElementById('top20-container').style.display = 'block';
             setTimeout(() => { document.getElementById('top20-container').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 200);
-        } catch (e) { loader.style.display = 'none'; }
+        } catch (e) { loader.style.display = 'none'; console.error(e); }
     }
 
     function triggerQuickSearch(id) { document.getElementById('matricule').value = id; searchAllSemesters(); }
