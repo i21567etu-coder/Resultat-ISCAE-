@@ -1,4 +1,4 @@
-const CACHE_NAME = 'iscae-res-v8';
+const CACHE_NAME = 'iscae-res-v9';
 const urlsToCache = [
   './',
   './index.html',
