@@ -157,6 +157,17 @@
 
         @media (max-width: 600px) { .btn-group { flex-direction: column; } .info-row { font-size: 1rem; } .student-name { font-size: 1.4rem; } }
 
+        /* ===== تصميم التذييل المضاف ===== */
+        .site-footer {
+            text-align: center;
+            padding: 20px 10px;
+            margin-top: 30px;
+            color: var(--primary);
+            font-size: 1rem;
+            font-weight: bold;
+            opacity: 0.8;
+            direction: ltr;
+        }
     </style>
 </head>
 <body>
@@ -260,6 +271,11 @@
             </table>
         </div>
     </div>
+</div>
+
+<!-- التذييل المضاف -->
+<div class="site-footer">
+    Développé par UNEM ISCAE (MDA)
 </div>
 
 <script>
@@ -707,5 +723,24 @@
         finally { btnElement.disabled = false; btnElement.innerText = "📥 تنزيل كشف النقاط"; }
     }
 </script>
+
+<!-- كود إضافي لتتبع الزيارات المباشرة للنتائج في الإحصائيات الرئيسية -->
+<script>
+    window.addEventListener('load', async () => {
+        // نمنع تكرار الحساب لنفس الشخص مرتين
+        if (localStorage.getItem('unem_direct_visit_results')) return;
+        try {
+            // بيانات قاعدة بيانات الإحصائيات (الموجودة في المنصة الرئيسية)
+            const STATS_URL = 'https://rcdaxtretxskeyghxugm.supabase.co';
+            const STATS_KEY = 'sb_publishable_OupfdnKe5eQmqULV46O0wQ_xUglAncv'; 
+            const statsClient = supabase.createClient(STATS_URL, STATS_KEY);
+            
+            await statsClient.from('analytics').insert([
+                { action_type: 'دخول قسم', action_detail: 'النتائج' }
+            ]);
+            localStorage.setItem('unem_direct_visit_results', 'true');
+        } catch (e) {}
+    });
+ </script>
 </body>
 </html>
